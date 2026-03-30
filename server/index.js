@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
 
@@ -47,6 +48,15 @@ app.post('/api/sentences', (req, res) => {
   const newSentence = { id: Date.now(), ...req.body };
   sentenceDB.push(newSentence);
   res.json(newSentence);
+});
+
+// React 정적 파일 제공 (프로덕션 환경 배포용)
+const clientBuildPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientBuildPath));
+
+// API가 아닌 모든 GET 요청은 React Router로 넘김
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
 io.on('connection', (socket) => {
