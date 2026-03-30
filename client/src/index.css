@@ -1,0 +1,185 @@
+:root {
+  --ow-orange: #f99e1a;
+  --ow-dark: #2A2E33;
+  --ow-darker: #212529;
+  --ow-light: #F8F9FA;
+  --ow-blue: #00A1E4;
+  --ow-red: #D23C32;
+  --ow-green: #2B9C4E;
+
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color: var(--ow-dark);
+  background-color: var(--ow-light);
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  /* subtle pattern background */
+  background-image: radial-gradient(var(--ow-darker) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #E2E8F0;
+  background-position: 0 0, 10px 10px;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0 auto;
+}
+
+/* Overwatch specific typography */
+h1, h2, h3, .ow-title {
+  font-family: 'Teko', sans-serif;
+  text-transform: uppercase;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* Slanted Button */
+.ow-button {
+  position: relative;
+  background-color: var(--ow-orange);
+  color: #fff;
+  font-family: 'Teko', sans-serif;
+  font-size: 1.8rem;
+  font-style: italic;
+  text-transform: uppercase;
+  font-weight: 600;
+  border: none;
+  padding: 0.5rem 2rem;
+  cursor: pointer;
+  transform: skewX(-10deg);
+  transition: all 0.2s ease-out;
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+}
+.ow-button span {
+  transform: skewX(10deg); /* un-skew text */
+}
+
+.ow-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: white;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.ow-button:hover::before {
+  opacity: 0.2;
+}
+
+.ow-button:active {
+  transform: skewX(-10deg) scale(0.95);
+  box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+}
+
+.ow-button.blue { background-color: var(--ow-blue); }
+.ow-button.dark { background-color: var(--ow-dark); }
+.ow-button.red { background-color: var(--ow-red); }
+
+/* Input Field */
+.ow-input {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 1.2rem;
+  padding: 0.8rem 1rem;
+  border: 3px solid var(--ow-dark);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ow-dark);
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  max-width: 300px;
+}
+.ow-input:focus {
+  border-color: var(--ow-orange);
+}
+
+/* Host Container */
+.host-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 2rem;
+  box-sizing: border-box;
+  background-color: #E2E8F0;
+}
+
+.host-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--ow-darker);
+  color: white;
+  border-bottom: 5px solid var(--ow-orange);
+  transform: skewX(-5deg);
+  margin-left: -1vw;
+  margin-right: -1vw;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+}
+
+.host-header > * {
+  transform: skewX(5deg);
+}
+
+/* Player Container (Mobile friendly) */
+.player-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background-color: var(--ow-darker);
+  color: white;
+}
+
+/* Base Panel */
+.ow-panel {
+  background: white;
+  border: 4px solid var(--ow-dark);
+  padding: 2rem;
+  box-shadow: 8px 8px 0px var(--ow-dark);
+  position: relative;
+}
+
+/* Grid Layouts */
+.grid-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.player-card {
+  background: var(--ow-blue);
+  color: white;
+  padding: 0.5rem;
+  text-align: center;
+  font-weight: bold;
+  font-family: 'Teko', sans-serif;
+  font-size: 1.5rem;
+  transform: skewX(-10deg);
+  border-bottom: 4px solid rgba(0,0,0,0.3);
+}
+.player-card > * {
+  transform: skewX(10deg);
+}
