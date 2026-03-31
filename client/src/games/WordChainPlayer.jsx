@@ -7,6 +7,7 @@ function WordChainPlayer({ pin, nickname }) {
   const [inputWord, setInputWord] = useState('');
   const [alertMsg, setAlertMsg] = useState('');
   const [eliminated, setEliminated] = useState(false);
+  const [isWaitingForJudge, setIsWaitingForJudge] = useState(false);
 
   useEffect(() => {
     socket.on('wordChainState', (data) => {
@@ -22,21 +23,33 @@ function WordChainPlayer({ pin, nickname }) {
 
     socket.on('invalidWord', ({ message }) => {
       setAlertMsg(message);
+      setIsWaitingForJudge(false);
+    });
+
+    socket.on('waitingForJudge', () => {
+      setIsWaitingForJudge(true);
+    });
+
+    socket.on('judgeComplete', () => {
+      setIsWaitingForJudge(false);
+      setInputWord('');
     });
 
     return () => {
       socket.off('wordChainState');
       socket.off('playerEliminated');
       socket.off('invalidWord');
+      socket.off('waitingForJudge');
+      socket.off('judgeComplete');
     };
   }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!inputWord.trim()) return;
+    if (!inputWord.trim() || isWaitingForJudge) return;
     
     socket.emit('submitChainWord', { pin, word: inputWord.trim() });
-    setInputWord('');
+    // inputWord는 심사가 끝난 후 초기화됨
   };
 
   if (eliminated) {
@@ -101,14 +114,21 @@ function WordChainPlayer({ pin, nickname }) {
               style={{ fontSize: '2rem', padding: '1rem' }}
             />
             {alertMsg && (
-              <div style={{ color: 'var(--ow-red)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ color: 'var(--ow-red)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(210,60,50,0.1)', padding: '0.5rem', borderRadius: '4px' }}>
                 <AlertCircle size={16} />
                 {alertMsg}
               </div>
             )}
-            <button type="submit" className="ow-button red" style={{ width: '100%', fontSize: '2rem' }}>
-              <span>SUBMIT</span>
-            </button>
+            
+            {isWaitingForJudge ? (
+              <div style={{ padding: '1.5rem', background: 'var(--ow-green)', color: 'white', textAlign: 'center', fontSize: '1.5rem', borderRadius: '4px' }}>
+                호스트 승인 대기 중... ⏳
+              </div>
+            ) : (
+              <button type="submit" className="ow-button red" style={{ width: '100%', fontSize: '2rem' }}>
+                <span>SUBMIT</span>
+              </button>
+            )}
           </form>
         ) : (
           <div style={{ padding: '2rem', textAlign: 'center', transform: 'skewX(2deg)' }}>

@@ -35,6 +35,29 @@ let sentenceDB = [
   { id: 2, sentence: 'This is an apple', meaning: '이것은 사과입니다' },
 ];
 
+// 빙고 게임을 위한 기초 단어셋 (최소 25개)
+let bingoDB = [
+  "apple", "banana", "car", "dog", "elephant", "frog", "grape", "house", "ice", "juice",
+  "kite", "lion", "monkey", "nose", "orange", "pig", "queen", "rabbit", "snake", "tree",
+  "umbrella", "van", "water", "xylophone", "yacht", "zebra", "bear", "cat", "duck", "eagle"
+];
+
+// 폭탄 돌리기 카테고리
+let categoryDB = {
+  "과일": ["사과", "바나나", "포도", "오렌지", "수박", "딸기", "메론", "파인애플", "복숭아", "배", "키위", "귤", "망고", "체리"],
+  "동물": ["강아지", "고양이", "사자", "호랑이", "코끼리", "원숭이", "기린", "토끼", "뱀", "곰", "돼지", "소", "말", "양"],
+  "색깔": ["빨강", "주황", "노랑", "초록", "파랑", "남색", "보라", "검정", "하양", "분홍", "갈색", "회색", "핑크", "레드", "블루"]
+};
+
+// 스펠링 헌터 DB
+let spellingDB = [
+  { correct: "apple", wrong: ["aple", "appple", "epple"] },
+  { correct: "banana", wrong: ["bananna", "bannana", "bananaa"] },
+  { correct: "elephant", wrong: ["elefant", "ellephant", "alephant"] },
+  { correct: "rabbit", wrong: ["rabit", "rabbitt", "reabbit"] },
+  { correct: "monkey", wrong: ["monky", "mankey", "munkey"] }
+];
+
 // 간단한 CRUD API 엔드포인트 세팅 (선생님이 나중에 API로 추가/수정 가능하도록 설정)
 app.get('/api/words', (req, res) => res.json(wordQuizDB));
 app.post('/api/words', (req, res) => {
@@ -55,7 +78,7 @@ const clientBuildPath = path.join(__dirname, '../client/dist');
 app.use(express.static(clientBuildPath));
 
 // API가 아닌 모든 GET 요청은 React Router로 넘김
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(clientBuildPath, 'index.html'));
 });
 
@@ -114,6 +137,18 @@ io.on('connection', (socket) => {
       // 3번 게임: 끝말잇기
       else if (gameMode === 'wordChain') {
         startWordChain(pin, room);
+      }
+      // 4번 게임: 디지털 빙고
+      else if (gameMode === 'wordBingo') {
+        startWordBingo(pin, room);
+      }
+      // 5번 게임: 카테고리 폭탄
+      else if (gameMode === 'categoryBomb') {
+        startCategoryBomb(pin, room);
+      }
+      // 6번 게임: 스펠링 헌터
+      else if (gameMode === 'spellingHunter') {
+        startSpellingHunter(pin, room);
       }
     }
   });
@@ -227,6 +262,169 @@ io.on('connection', (socket) => {
     }, 1000);
   }
 
+  // ==== 4. 빙고 게임 ====
+  function startWordBingo(pin, room) {
+    // 플레이어들이 보드에 배치할 전체 단어 세트 전송
+    io.to(pin).emit('bingoWordList', { words: bingoDB });
+  }
+
+  // 호스트가 단어 뽑기
+  socket.on('drawBingoWord', ({ pin, word }) => {
+    const room = rooms[pin];
+    if (room && room.host === socket.id) {
+      io.to(pin).emit('bingoWordDrawn', { word });
+    }
+  });
+
+  // 플레이어가 빙고 달성 시
+  socket.on('claimBingo', ({ pin }) => {
+    const room = rooms[pin];
+    if (room) {
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        player.score += 50; // 빙고 완성 보너스
+        io.to(pin).emit('playersUpdated', room.players);
+        io.to(pin).emit('bingoClaimed', { id: player.id, nickname: player.nickname });
+      }
+    }
+  });
+
+  // ==== 5. 카테고리 폭탄 ====
+  function startCategoryBomb(pin, room) {
+    if (room.bombTimer) clearInterval(room.bombTimer);
+    
+    const categories = Object.keys(categoryDB);
+    const category = categories[Math.floor(Math.random() * categories.length)];
+    
+    room.bombGame = {
+      activePlayers: [...room.players.map(p => p.id)],
+      currentPlayerIndex: Math.floor(Math.random() * room.players.length), // 시작은 완전 랜덤
+      category: category,
+      timeRemaining: 20, // 20초 제한
+      usedWords: [] // 이미 말한 단어 중복 방지
+    };
+
+    broadcastBombState(pin, room);
+    startBombTimer(pin, room);
+  }
+
+  function broadcastBombState(pin, room) {
+    io.to(pin).emit('bombState', {
+      category: room.bombGame.category,
+      activePlayers: room.bombGame.activePlayers,
+      currentPlayerId: room.bombGame.activePlayers[room.bombGame.currentPlayerIndex],
+      timeRemaining: room.bombGame.timeRemaining,
+      usedWords: room.bombGame.usedWords,
+      playersInfo: room.players
+    });
+  }
+
+  function startBombTimer(pin, room) {
+    if (room.bombTimer) clearInterval(room.bombTimer);
+    
+    room.bombTimer = setInterval(() => {
+      if (!room || room.gameState !== 'categoryBomb') {
+        clearInterval(room.bombTimer);
+        return;
+      }
+      
+      room.bombGame.timeRemaining -= 1;
+      
+      if (room.bombGame.timeRemaining <= 0) {
+        // 폭발
+        const explodedId = room.bombGame.activePlayers[room.bombGame.currentPlayerIndex];
+        io.to(pin).emit('bombExploded', { id: explodedId });
+        
+        // 해당 유저는 점수 깎이거나 탈락 (여기서는 스킵하고 다음 판으로, 혹은 게임 진행 안내)
+        // 일단 타이머 정지
+        clearInterval(room.bombTimer);
+      } else {
+        broadcastBombState(pin, room);
+      }
+    }, 1000);
+  }
+
+  socket.on('submitBombWord', ({ pin, word }) => {
+    const room = rooms[pin];
+    if (room && room.gameState === 'categoryBomb' && room.bombGame) {
+      const currentPlayerId = room.bombGame.activePlayers[room.bombGame.currentPlayerIndex];
+      if (socket.id !== currentPlayerId) return;
+      
+      // 이미 사용된 단어인지 확인
+      if (room.bombGame.usedWords.includes(word)) {
+        io.to(socket.id).emit('invalidBombWord', { message: '이미 사용된 단어입니다!' });
+        return;
+      }
+
+      // 호스트 승인 대기를 위해 타이머 일시정지
+      clearInterval(room.bombTimer);
+      const player = room.players.find(p => p.id === socket.id);
+      
+      io.to(room.host).emit('hostReviewWord', {
+        playerId: socket.id,
+        nickname: player ? player.nickname : '알 수 없음',
+        word,
+        gameMode: 'categoryBomb'
+      });
+      io.to(pin).emit('waitingForJudge', { word, nickname: player ? player.nickname : '' });
+    }
+  });
+
+  // 카테고리 폭탄 재개 (호스트가 클릭)
+  socket.on('resumeBomb', ({ pin }) => {
+    const room = rooms[pin];
+    if (room && room.gameState === 'categoryBomb') {
+      startCategoryBomb(pin, room);
+    }
+  });
+
+  // ==== 6. 스펠링 헌터 ====
+  function startSpellingHunter(pin, room) {
+    if (room.hunterTimer) clearInterval(room.hunterTimer);
+    
+    room.hunterGame = {
+      timeRemaining: 60, // 60초간 진행
+      isActive: true
+    };
+    
+    io.to(pin).emit('hunterState', { timeRemaining: 60, isActive: true, words: spellingDB });
+    
+    room.hunterTimer = setInterval(() => {
+      if (!room || room.gameState !== 'spellingHunter') {
+        clearInterval(room.hunterTimer);
+        return;
+      }
+      
+      room.hunterGame.timeRemaining -= 1;
+      
+      if (room.hunterGame.timeRemaining <= 0) {
+        room.hunterGame.isActive = false;
+        clearInterval(room.hunterTimer);
+        io.to(pin).emit('hunterState', { timeRemaining: 0, isActive: false });
+        io.to(pin).emit('playersUpdated', room.players); // 최종 리더보드 전송
+      } else {
+        if (room.hunterGame.timeRemaining % 3 === 0) {
+          // 3초마다 타이머 및 실시간 리더보드 동기화 (네트워크 플러딩 억제)
+          io.to(pin).emit('hunterState', { timeRemaining: room.hunterGame.timeRemaining, isActive: true });
+          io.to(pin).emit('playersUpdated', room.players);
+        }
+      }
+    }, 1000);
+  }
+
+  // 플레이어가 스펠링을 맞춰서 점수 획득 (다중 접속 시 부하를 막기 위해 playersUpdated는 즉각 emit하지 않음)
+  socket.on('hunterScore', ({ pin, points }) => {
+    const room = rooms[pin];
+    if (room && room.gameState === 'spellingHunter' && room.hunterGame && room.hunterGame.isActive) {
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        player.score += points;
+        // 클라이언트 단의 개별 반응(효과음/피드백)을 위해 본인에게만 업데이트 알림
+        io.to(socket.id).emit('myScoreUpdated', { score: player.score });
+      }
+    }
+  });
+
   // 4. 단어 퀴즈 정답 제출 (Player)
   socket.on('submitWordQuiz', ({ pin, answer }) => {
     const room = rooms[pin];
@@ -267,27 +465,72 @@ io.on('connection', (socket) => {
     const room = rooms[pin];
     if (room && room.gameState === 'wordChain' && room.wordChain) {
       const currentPlayerId = room.wordChain.activePlayers[room.wordChain.currentPlayerIndex];
-      
-      // 내 턴이 아니면 무시
       if (socket.id !== currentPlayerId) return;
 
       const lastWord = room.wordChain.chain[room.wordChain.chain.length - 1];
       const validStart = lastWord.charAt(lastWord.length - 1).toLowerCase();
       const submittedStart = word.charAt(0).toLowerCase();
 
-      // 끝말잇기 룰 체크 (간단히 첫/끝 철자 일치만 확인)
-      // *TODO: 실제 사전에 있는지 외부 API 등을 이용한 체크 로직 추가 가능
-      if (validStart === submittedStart && word.length > 1) {
-        room.wordChain.chain.push(word.toLowerCase());
-        
-        // 다음 사람 턴으로 이동
-        room.wordChain.currentPlayerIndex = (room.wordChain.currentPlayerIndex + 1) % room.wordChain.activePlayers.length;
-        room.wordChain.timeRemaining = 15;
-        
+      if (validStart !== submittedStart || word.length <= 1) {
+        io.to(socket.id).emit('invalidWord', { message: `'${validStart}'로 시작하는 2글자 이상의 단어를 입력하세요!` });
+        return;
+      }
+      
+      // 이미 사용된 단어인지 검사
+      if (room.wordChain.chain.includes(word.toLowerCase())) {
+        io.to(socket.id).emit('invalidWord', { message: `이미 사용된 단어입니다!` });
+        return;
+      }
+
+      // 호스트 승인 대기를 위해 타이머 일시정지
+      clearInterval(room.chainTimer);
+      const player = room.players.find(p => p.id === socket.id);
+      
+      io.to(room.host).emit('hostReviewWord', {
+        playerId: socket.id,
+        nickname: player ? player.nickname : '알 수 없음',
+        word,
+        gameMode: 'wordChain'
+      });
+      io.to(pin).emit('waitingForJudge', { word, nickname: player ? player.nickname : '' });
+    }
+  });
+
+  // 호스트 단어 심사 결과 처리
+  socket.on('hostJudgeResult', ({ pin, isCorrect, word, gameMode, playerId }) => {
+    const room = rooms[pin];
+    if (room && room.host === socket.id) {
+      if (gameMode === 'categoryBomb' && room.bombGame) {
+        if (isCorrect) {
+          room.bombGame.usedWords.push(word);
+          
+          const otherPlayers = room.bombGame.activePlayers.filter((_, idx) => idx !== room.bombGame.currentPlayerIndex);
+          if (otherPlayers.length > 0) {
+            const nextPlayerId = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+            room.bombGame.currentPlayerIndex = room.bombGame.activePlayers.indexOf(nextPlayerId);
+            room.bombGame.timeRemaining = Math.min(room.bombGame.timeRemaining + 5, 20); 
+            
+            io.to(pin).emit('bombPassed', { passedTo: nextPlayerId, word, isCorrect: true, message: '정답 인정!' });
+          }
+        } else {
+          io.to(playerId).emit('invalidBombWord', { message: '호스트가 오답 처리했습니다!' });
+          io.to(pin).emit('bombPassed', { passedTo: playerId, word, isCorrect: false });
+        }
+        broadcastBombState(pin, room);
+        startBombTimer(pin, room);
+      } 
+      else if (gameMode === 'wordChain' && room.wordChain) {
+        if (isCorrect) {
+          room.wordChain.chain.push(word.toLowerCase());
+          room.wordChain.currentPlayerIndex = (room.wordChain.currentPlayerIndex + 1) % room.wordChain.activePlayers.length;
+          room.wordChain.timeRemaining = 15;
+          io.to(pin).emit('judgeComplete', { isCorrect: true });
+        } else {
+          io.to(playerId).emit('invalidWord', { message: '호스트가 오답 처리했습니다! 다시 입력하세요.' });
+          io.to(pin).emit('judgeComplete', { isCorrect: false });
+        }
         broadcastChainState(pin, room);
-      } else {
-        // 틀린 단어를 제출한 경우 패널티 처리 기능 (여기선 경고 표시 등 UI로만 처리하고 아무일도 안 일어남)
-        io.to(socket.id).emit('invalidWord', { message: `'${validStart}'로 시작하는 다른 단어를 입력하세요!` });
+        startChainTimer(pin, room);
       }
     }
   });

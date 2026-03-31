@@ -11,6 +11,16 @@ function HostScreen() {
   const [puzzleData, setPuzzleData] = useState(null); // { meaning, sentence, winner }
   const [chainData, setChainData] = useState(null); // { chain, activePlayers, currentPlayerId, timeRemaining, playersInfo }
   const [chainGameOver, setChainGameOver] = useState(null); // winner logic
+  const [judgeData, setJudgeData] = useState(null); // { playerId, nickname, word, gameMode }
+
+  const [bingoWordList, setBingoWordList] = useState([]);
+  const [bingoDrawnWords, setBingoDrawnWords] = useState([]);
+  const [bingoWinners, setBingoWinners] = useState([]);
+
+  const [bombData, setBombData] = useState(null);
+  const [bombExploded, setBombExploded] = useState(null);
+
+  const [hunterData, setHunterData] = useState(null);
 
   useEffect(() => {
     socket.connect();
@@ -50,9 +60,30 @@ function HostScreen() {
       setChainGameOver(null);
     });
 
+    socket.on('hostReviewWord', (data) => {
+      setJudgeData(data); // { playerId, nickname, word, gameMode }
+    });
+
     socket.on('chainGameOver', ({ winner }) => {
       setChainGameOver(winner);
     });
+
+    socket.on('bingoWordList', ({ words }) => setBingoWordList(words));
+    socket.on('bingoWordDrawn', ({ word }) => setBingoDrawnWords(prev => [word, ...prev]));
+    socket.on('bingoClaimed', ({ id, nickname }) => {
+      setBingoWinners(prev => {
+        if (!prev.find(p => p.id === id)) return [...prev, { id, nickname }];
+        return prev;
+      });
+    });
+
+    socket.on('bombState', (data) => {
+      setBombData(data);
+      setBombExploded(null);
+    });
+    socket.on('bombExploded', ({ id }) => setBombExploded(id));
+
+    socket.on('hunterState', (data) => setHunterData(data));
 
     return () => {
       socket.off('playersUpdated');
@@ -63,6 +94,13 @@ function HostScreen() {
       socket.off('puzzleCorrectAnswer');
       socket.off('wordChainState');
       socket.off('chainGameOver');
+      socket.off('hostReviewWord');
+      socket.off('bingoWordList');
+      socket.off('bingoWordDrawn');
+      socket.off('bingoClaimed');
+      socket.off('bombState');
+      socket.off('bombExploded');
+      socket.off('hunterState');
       socket.disconnect();
     };
   }, []);
@@ -196,6 +234,128 @@ function HostScreen() {
                    )}
                  </>
                ) : null}
+
+                {/* 4. Word Bingo */}
+                {gameState === 'wordBingo' && (
+                  <>
+                    <h3 style={{ fontSize: '2rem', color: '#666', transform: 'skewX(2deg)', margin: 0 }}>DIGITAL BINGO</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      <button 
+                        onClick={() => {
+                          const undrawn = bingoWordList.filter(w => !bingoDrawnWords.includes(w));
+                          if (undrawn.length > 0) {
+                            const randomWord = undrawn[Math.floor(Math.random() * undrawn.length)];
+                            socket.emit('drawBingoWord', { pin, word: randomWord });
+                          } else {
+                            alert('모든 단어를 다 뽑았습니다!');
+                          }
+                        }}
+                        className="ow-button blue"
+                        style={{ margin: '1rem', transform: 'skewX(-5deg)', fontSize: '2rem' }}
+                      >
+                        <span style={{ transform: 'skewX(5deg)' }}>RANDOM DRAW</span>
+                      </button>
+                      
+                      {bingoDrawnWords.length > 0 && (
+                        <div style={{ fontSize: '5rem', fontFamily: 'Noto Sans KR', color: 'var(--ow-red)', margin: '1rem 0', transform: 'skewX(2deg)' }}>
+                          {bingoDrawnWords[0].toUpperCase()}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', padding: '1rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {bingoDrawnWords.map((w, idx) => (
+                           <div key={idx} style={{ 
+                             padding: '0.5rem 1rem', 
+                             background: idx === 0 ? 'var(--ow-red)' : 'var(--ow-darker)', 
+                             color: 'white',
+                             borderRadius: '4px',
+                             fontSize: '1.5rem',
+                             fontFamily: 'Teko'
+                           }}>
+                             {w}
+                           </div>
+                        ))}
+                      </div>
+
+                      {bingoWinners.length > 0 && (
+                        <div style={{ background: 'var(--ow-green)', padding: '1rem', color: 'white', marginTop: '1rem', width: '80%', textAlign: 'center' }}>
+                          <h2 style={{ fontSize: '2rem', margin: 0 }}>🎉 BINGO WINNERS! 🎉</h2>
+                          <div style={{ fontSize: '1.5rem' }}>
+                            {bingoWinners.map(w => w.nickname).join(', ')}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* 5. Category Bomb */}
+                {gameState === 'categoryBomb' && bombData && (
+                  <>
+                    <h3 style={{ fontSize: '2rem', color: '#666', transform: 'skewX(2deg)', margin: 0 }}>CATEGORY BOMB</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      <h1 style={{ fontSize: '3rem', margin: '1rem 0', color: 'var(--ow-blue)' }}>카테고리: {bombData.category}</h1>
+                      
+                      {bombExploded ? (
+                        <div style={{ background: 'var(--ow-red)', padding: '2rem', color: 'white', transform: 'skewX(-5deg)', textAlign: 'center' }}>
+                          <h2 style={{ fontSize: '4rem', margin: 0, transform: 'skewX(5deg)' }}>BOOM! 💥</h2>
+                          <h3 style={{ fontSize: '2rem', margin: 0, transform: 'skewX(5deg)' }}>
+                            {players.find(p => p.id === bombExploded)?.nickname || '알 수 없음'} 탈락!
+                          </h3>
+                          <button onClick={() => socket.emit('resumeBomb', { pin })} className="ow-button" style={{ marginTop: '1rem', background: 'var(--ow-dark)' }}>
+                            <span style={{ transform: 'skewX(-10deg)' }}>RESUME GAME</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ fontSize: '8rem', fontFamily: 'Teko', color: bombData.timeRemaining <= 5 ? 'var(--ow-red)' : 'var(--ow-dark)' }}>
+                            {bombData.timeRemaining}s
+                          </div>
+                          
+                          <div style={{ background: 'var(--ow-darker)', color: 'white', padding: '1rem 3rem', transform: 'skewX(-10deg)', marginTop: '1rem' }}>
+                            <span style={{ fontSize: '2rem', display: 'block', transform: 'skewX(10deg)' }}>
+                              폭탄 소지자: <span style={{ color: 'var(--ow-orange)' }}>{bombData.playersInfo.find(p => p.id === bombData.currentPlayerId)?.nickname || '알 수 없음'}</span>
+                            </span>
+                          </div>
+
+                          <div style={{ marginTop: '1rem', color: '#666', fontSize: '1.2rem', fontFamily: 'Noto Sans KR' }}>
+                            나온 단어: {bombData.usedWords.join(', ')}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* 6. Spelling Hunter */}
+                {gameState === 'spellingHunter' && hunterData && (
+                  <>
+                    <h3 style={{ fontSize: '2rem', color: '#666', transform: 'skewX(2deg)', margin: 0 }}>SPELLING HUNTER</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      <div style={{ fontSize: '5rem', fontFamily: 'Teko', color: hunterData.timeRemaining <= 10 ? 'var(--ow-red)' : 'var(--ow-blue)' }}>
+                        {hunterData.timeRemaining}s
+                      </div>
+                      
+                      {!hunterData.isActive ? (
+                        <div style={{ background: 'var(--ow-orange)', padding: '1rem 3rem', color: 'white', transform: 'skewX(-5deg)', marginTop: '1rem' }}>
+                          <h2 style={{ fontSize: '3rem', margin: 0, transform: 'skewX(5deg)' }}>GAME OVER</h2>
+                        </div>
+                      ) : (
+                         <div style={{ fontSize: '1.5rem', color: '#888', marginTop: '1rem' }}>진행 중... 화면에서 단어들이 떨어집니다!</div>
+                      )}
+
+                      <h2 style={{ fontSize: '2rem', marginTop: '2rem' }}>LEADERBOARD</h2>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '80%' }}>
+                        {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', background: 'var(--ow-darker)', color: 'white', padding: '1rem', fontSize: '1.5rem', borderRadius: '4px' }}>
+                            <span>{idx + 1}. {p.nickname}</span>
+                            <span style={{ color: 'var(--ow-green)', fontWeight: 'bold' }}>{p.score} PT</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
             </div>
           )}
 
@@ -246,10 +406,79 @@ function HostScreen() {
               <span>3. WORD CHAIN</span>
               <Play size={24} />
             </button>
+            <button 
+              className="ow-button" 
+              style={{ width: '100%', justifyContent: 'space-between', background: 'var(--ow-green)', border: '2px solid white' }}
+              onClick={() => {
+                setBingoDrawnWords([]);
+                setBingoWinners([]);
+                startGame('wordBingo');
+              }}
+            >
+              <span>4. DIGITAL BINGO</span>
+              <Play size={24} />
+            </button>
+            <button 
+              className="ow-button" 
+              style={{ width: '100%', justifyContent: 'space-between', background: '#eab308', border: '2px solid white' }}
+              onClick={() => startGame('categoryBomb')}
+            >
+              <span>5. CATEGORY BOMB</span>
+              <Play size={24} />
+            </button>
+            <button 
+              className="ow-button" 
+              style={{ width: '100%', justifyContent: 'space-between', background: '#8b5cf6', border: '2px solid white' }}
+              onClick={() => startGame('spellingHunter')}
+            >
+              <span>6. SPELLING HUNTER</span>
+              <Play size={24} />
+            </button>
           </div>
         </aside>
 
       </main>
+
+      {/* Host Judgment Modal */}
+      {judgeData && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.85)', zIndex: 9999,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div className="ow-panel" style={{ textAlign: 'center', padding: '4rem', transform: 'skewX(-2deg)', maxWidth: '600px', width: '90%', animation: 'float 2s ease-in-out infinite' }}>
+            <h2 style={{ fontSize: '3rem', color: 'var(--ow-blue)', margin: '0 0 1rem 0' }}>HOST APPROVAL REQUIRED</h2>
+            <div style={{ fontSize: '2rem', color: '#666' }}>
+              <strong style={{ color: 'var(--ow-orange)' }}>{judgeData.nickname}</strong> 님의 답변:
+            </div>
+            <div style={{ fontSize: '6rem', fontFamily: 'Teko', margin: '2rem 0', color: 'var(--ow-darker)', lineHeight: 1 }}>
+              "{judgeData.word.toUpperCase()}"
+            </div>
+            <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center' }}>
+              <button 
+                className="ow-button" 
+                style={{ background: 'var(--ow-green)', padding: '1rem 3rem', fontSize: '2.5rem' }}
+                onClick={() => {
+                  socket.emit('hostJudgeResult', { pin, isCorrect: true, ...judgeData });
+                  setJudgeData(null);
+                }}
+              >
+                <span>인정 (ACCEPT)</span>
+              </button>
+              <button 
+                className="ow-button" 
+                style={{ background: 'var(--ow-red)', padding: '1rem 3rem', fontSize: '2.5rem' }}
+                onClick={() => {
+                  socket.emit('hostJudgeResult', { pin, isCorrect: false, ...judgeData });
+                  setJudgeData(null);
+                }}
+              >
+                <span>거절 (REJECT)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

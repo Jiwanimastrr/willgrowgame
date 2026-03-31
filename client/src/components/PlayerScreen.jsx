@@ -3,10 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import { socket } from '../utils/socket';
 import { LogIn, User } from 'lucide-react';
 
-// 게임 컴포넌트 임포트 (아직 생성 안됨 - 뼈대만)
+// 게임 컴포넌트 임포트
 import WordQuizPlayer from '../games/WordQuizPlayer';
 import SentencePuzzlePlayer from '../games/SentencePuzzlePlayer';
 import WordChainPlayer from '../games/WordChainPlayer';
+import WordBingoPlayer from '../games/WordBingoPlayer';
+import BombGamePlayer from '../games/BombGamePlayer';
+import SpellingHunterPlayer from '../games/SpellingHunterPlayer';
 
 function PlayerScreen() {
   const [searchParams] = useSearchParams();
@@ -112,6 +115,9 @@ function PlayerScreen() {
       {gameState === 'wordQuiz' && <WordQuizPlayer pin={pin} nickname={nickname} />}
       {gameState === 'sentencePuzzle' && <SentencePuzzlePlayer pin={pin} nickname={nickname} />}
       {gameState === 'wordChain' && <WordChainPlayer pin={pin} nickname={nickname} />}
+      {gameState === 'wordBingo' && <WordBingoPlayer pin={pin} nickname={nickname} />}
+      {gameState === 'categoryBomb' && <BombGamePlayer pin={pin} nickname={nickname} />}
+      {gameState === 'spellingHunter' && <SpellingHunterPlayer pin={pin} nickname={nickname} />}
     </div>
   );
 }
