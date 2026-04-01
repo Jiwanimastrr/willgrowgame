@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '../utils/socket';
 import { Users, Play } from 'lucide-react';
@@ -23,6 +23,24 @@ function HostScreen() {
   const [hunterData, setHunterData] = useState(null);
   const [raceData, setRaceData] = useState(null);
   const [raceWinner, setRaceWinner] = useState(null);
+
+  const [showVocabModal, setShowVocabModal] = useState(false);
+  const [vocabInput, setVocabInput] = useState('');
+  const [customVocabCount, setCustomVocabCount] = useState(0);
+
+  const bgmRef = useRef(null);
+
+  useEffect(() => {
+    if (bgmRef.current) {
+      if (gameState !== 'lobby') {
+        bgmRef.current.volume = 0.4; // 배경음악 크기 조절
+        bgmRef.current.play().catch(e => console.log('BGM Play blocked:', e));
+      } else {
+        bgmRef.current.pause();
+        bgmRef.current.currentTime = 0;
+      }
+    }
+  }, [gameState]);
 
   useEffect(() => {
     socket.connect();
@@ -122,6 +140,43 @@ function HostScreen() {
     socket.emit('startGame', { pin, gameMode });
   };
 
+  const handleVocabSubmit = () => {
+    if (!vocabInput.trim()) return;
+    
+    const lines = vocabInput.split('\n').filter(l => l.trim() !== '');
+    const parsedWords = [];
+    
+    lines.forEach(line => {
+      // Split by tab, comma, hyphen, colon, or multiple spaces
+      const parts = line.split(/\t|,|-|:| {2,}/).filter(p => p.trim() !== '');
+      if (parts.length >= 2) {
+        parsedWords.push({
+          answer: parts[0].trim().toLowerCase(),
+          meaning: parts[1].trim()
+        });
+      } else {
+        // Fallback: split by single spaces
+        const spaceDelim = line.trim().split(' ');
+        if (spaceDelim.length >= 2) {
+           parsedWords.push({
+             answer: spaceDelim[0].trim().toLowerCase(),
+             meaning: spaceDelim.slice(1).join(' ').trim()
+           });
+        }
+      }
+    });
+
+    if (parsedWords.length > 0) {
+      socket.emit('uploadCustomWords', { pin, words: parsedWords });
+      setCustomVocabCount(parsedWords.length);
+      setShowVocabModal(false);
+      setVocabInput('');
+      if (window.soundFX) window.soundFX.playWin();
+    } else {
+      alert("단어 포맷을 인식할 수 없습니다. '영단어 뜻' 형식으로 입력해주세요.");
+    }
+  };
+
   const joinUrl = `${window.location.origin}/player?pin=${pin}`;
 
   return (
@@ -138,6 +193,9 @@ function HostScreen() {
           <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          
+          <audio ref={bgmRef} src="/bgm.webm" loop />
+
           <Users size={32} color="var(--ow-primary)" />
           <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>
             {players.length} PLAYERS
@@ -150,21 +208,42 @@ function HostScreen() {
         {/* Left Side: Lobby & Dashboards */}
         <section className="ow-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {gameState === 'lobby' ? (
-            <div style={{ padding: '2rem' }}>
-              <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginTop: 0 }}>
-                JOIN AT <span style={{ color: 'var(--ow-primary)', textDecoration: 'underline' }}>{window.location.host}/player</span>
+            <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
+              <h2 className="display-lg" style={{ color: 'var(--ow-secondary)', margin: '0 0 1rem 0' }}>
+                SCAN TO JOIN!
               </h2>
-              <div style={{ display: 'flex', gap: '3rem', alignItems: 'center', marginTop: '3rem' }}>
-                {pin && (
-                  <div style={{ padding: '15px', background: 'white', borderRadius: '1rem', boxShadow: '0 0 30px rgba(204,151,255,0.3)' }}>
-                    <QRCodeSVG value={joinUrl} size={180} />
+              <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '2rem', marginBottom: '3rem' }}>
+                또는 스마트폰으로 <span style={{ color: 'var(--ow-primary)', textDecoration: 'underline' }}>{window.location.host}/player</span> 에 접속하세요
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '5rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {pin ? (
+                  <div style={{ padding: '20px', background: 'white', borderRadius: '1.5rem', boxShadow: '0 0 40px rgba(204,151,255,0.4)', outline: '5px solid var(--ow-primary)', outlineOffset: '10px' }}>
+                    <QRCodeSVG value={joinUrl} size={320} />
+                  </div>
+                ) : (
+                  <div style={{ width: 320, height: 320, background: 'rgba(255,255,255,0.1)', borderRadius: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     <span className="headline-lg">LOADING...</span>
                   </div>
                 )}
-                <div>
-                  <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem' }}>GAME PIN:</h3>
-                  <div className="display-lg" style={{ color: 'var(--ow-primary)', letterSpacing: '4px', textShadow: '0 0 20px rgba(204,151,255,0.6)' }}>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '2rem', marginBottom: '1rem' }}>게임 핀 번호 (GAME PIN)</h3>
+                  <div className="display-lg" style={{ fontSize: '7rem', color: 'var(--ow-primary)', letterSpacing: '8px', textShadow: '0 0 40px rgba(204,151,255,0.8)' }}>
                     {pin || 'LOADING...'}
                   </div>
+                  <button 
+                    className="ow-btn ow-btn-secondary" 
+                    style={{ marginTop: '2rem', fontSize: '1.2rem', padding: '1rem 2rem' }}
+                    onClick={() => setShowVocabModal(true)}
+                  >
+                    ⚙️ 커스텀 단어장 업로드
+                  </button>
+                  {customVocabCount > 0 && (
+                    <div style={{ color: 'var(--ow-primary)', marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                      ✅ 커스텀 단어 {customVocabCount}개 적용됨
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -459,16 +538,16 @@ function HostScreen() {
             GAME MODES
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
               <span>Word Quiz</span> <Play size={20} />
             </button>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
               <span>Sentence Race</span> <Play size={20} />
             </button>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordChain')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordChain')}>
               <span>Word Chain</span> <Play size={20} />
             </button>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
               setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo');
             }}>
               <span>Digital Bingo</span> <Play size={20} />
@@ -527,6 +606,29 @@ function HostScreen() {
                 REJECT (거절)
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vocab Modal */}
+      {showVocabModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="ow-panel animate-enter" style={{ width: '80%', maxWidth: '800px', padding: '2rem' }}>
+             <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', marginBottom: '1rem' }}>⚙️ 커스텀 단어장 업로드</h2>
+             <p className="body-md" style={{ color: 'var(--on-surface-variant)', marginBottom: '1rem' }}>
+               엑셀이나 메모장에서 <strong>"영단어 뜻"</strong> 형태로 드래그하여 아래 빈칸에 붙여넣으세요.<br/>
+               (예: <code>apple 사과</code> 또는 <code>banana     바나나</code>)
+             </p>
+             <textarea 
+               value={vocabInput}
+               onChange={(e) => setVocabInput(e.target.value)}
+               placeholder="apple 사과&#10;banana 바나나&#10;car 자동차"
+               style={{ width: '100%', height: '300px', background: 'var(--ow-surface)', color: 'white', border: '2px solid var(--ow-primary-dim)', padding: '1rem', fontFamily: 'monospace', fontSize: '1.2rem', marginBottom: '1.5rem', boxSizing: 'border-box', borderRadius: '8px' }}
+             />
+             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button className="ow-btn ow-btn-secondary" onClick={() => setShowVocabModal(false)}>취소</button>
+                <button className="ow-btn" onClick={handleVocabSubmit}>업로드 및 적용</button>
+             </div>
           </div>
         </div>
       )}

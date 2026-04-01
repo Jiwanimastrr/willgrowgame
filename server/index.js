@@ -101,6 +101,13 @@ io.on('connection', (socket) => {
     if(typeof callback === 'function') callback({ success: true, pin });
   });
 
+  socket.on('uploadCustomWords', ({ pin, words }) => {
+    if (rooms[pin] && rooms[pin].host === socket.id) {
+      rooms[pin].customWordDB = words;
+      console.log(`📚 Custom words uploaded for room ${pin}: ${words.length} words`);
+    }
+  });
+
   // 2. 방 접속 (Player)
   socket.on('joinRoom', ({ pin, nickname }, callback) => {
     if (rooms[pin]) {
@@ -173,10 +180,11 @@ io.on('connection', (socket) => {
   });
 
   function emitNextWordQuiz(pin, room) {
-    const question = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
+    const db = (room.customWordDB && room.customWordDB.length >= 4) ? room.customWordDB : wordQuizDB;
+    const question = db[Math.floor(Math.random() * db.length)];
     room.currentQuestion = question;
     // 오답 보기 3개 + 정답 1개 섞기
-    const incorrectOptions = wordQuizDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+    const incorrectOptions = db.filter(q => q.id !== question.id && q.answer !== question.answer).sort(() => 0.5 - Math.random()).slice(0, 3);
     const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
 
     // Host에게는 정답 & 메인 문제 전송
@@ -206,7 +214,8 @@ io.on('connection', (socket) => {
     if (room.chainTimer) clearInterval(room.chainTimer);
     
     // 무작위 첫 단어 설정
-    const startingWord = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)].answer;
+    const db = (room.customWordDB && room.customWordDB.length > 0) ? room.customWordDB : wordQuizDB;
+    const startingWord = db[Math.floor(Math.random() * db.length)].answer;
     
     room.wordChain = {
       activePlayers: [...room.players.map(p => p.id)], // 현재 방의 플레이어 ID 목록 복사
@@ -273,7 +282,19 @@ io.on('connection', (socket) => {
   // ==== 4. 빙고 게임 ====
   function startWordBingo(pin, room) {
     // 플레이어들이 보드에 배치할 전체 단어 세트 전송
-    io.to(pin).emit('bingoWordList', { words: bingoDB });
+    let wordsToSend = bingoDB;
+    if (room.customWordDB && room.customWordDB.length > 0) {
+      wordsToSend = room.customWordDB.map(w => w.answer);
+      // 빙고판을 채우려면 최소 16~25단어 필요. 부족하면 반복해서 채움.
+      if (wordsToSend.length < 25) {
+         let temp = [...wordsToSend];
+         while(temp.length < 25) {
+           temp = [...temp, ...wordsToSend];
+         }
+         wordsToSend = temp;
+      }
+    }
+    io.to(pin).emit('bingoWordList', { words: wordsToSend });
   }
 
   // 호스트가 단어 뽑기
@@ -395,7 +416,29 @@ io.on('connection', (socket) => {
       isActive: true
     };
     
-    io.to(pin).emit('hunterState', { timeRemaining: 60, isActive: true, words: spellingDB });
+    let dbToSend = spellingDB;
+    if (room.customWordDB && room.customWordDB.length > 0) {
+      dbToSend = room.customWordDB.map(w => {
+         const correct = w.answer.toLowerCase();
+         // 대충 모음 등 하나 치환하거나 글자 하나 빼서 3가지 오답 만들기
+         const wrong = Array(3).fill(0).map((_, i) => {
+             const idx = Math.floor(Math.random() * correct.length);
+             const arr = correct.split('');
+             if (i === 0) arr.splice(idx, 1); // 문자 하나 빼기
+             else if (i === 1) arr.splice(idx, 0, arr[idx]); // 문자 중복
+             else arr[idx] = ['a','e','i','o','u'][Math.floor(Math.random()*5)]; // 모음 덮어쓰기
+             return arr.join('');
+         }).filter(fake => fake !== correct); // 우연히 정답과 같아지면 방지
+         
+         // 3개가 안되면 기본 대충 넣기
+         while(wrong.length < 3) {
+            wrong.push(correct + "x" + Math.floor(Math.random()*10));
+         }
+         return { correct, wrong };
+      });
+    }
+    
+    io.to(pin).emit('hunterState', { timeRemaining: 60, isActive: true, words: dbToSend });
     
     room.hunterTimer = setInterval(() => {
       if (!room || room.gameState !== 'spellingHunter') {
