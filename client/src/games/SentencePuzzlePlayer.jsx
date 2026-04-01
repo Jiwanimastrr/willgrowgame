@@ -44,19 +44,19 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--ow-red)', margin: '1rem 0' }}>SENTENCE RACE</h2>
+      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--error)', margin: '1rem 0' }}>SENTENCE RACE</h2>
       
       {tokens.length > 0 ? (
-        <div className="ow-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '1rem', transform: 'skewX(-2deg)' }}>
+        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '1rem' }}>
           {result && result !== 'waiting' ? (
-             <div style={{ textAlign: 'center', margin: 'auto', transform: 'skewX(2deg)' }}>
-               <h1 style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--ow-green)' : 'var(--ow-red)' }}>
+             <div style={{ textAlign: 'center', margin: 'auto' }}>
+               <h1 style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--tertiary)' : 'var(--error)' }}>
                  {result === 'correct' ? 'CORRECT!' : result}
                </h1>
              </div>
           ) : (
-            <div style={{ transform: 'skewX(2deg)', flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ fontSize: '1.5rem', textAlign: 'center', fontFamily: 'Noto Sans KR', fontWeight: 700, marginBottom: '2rem', color: '#666' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '1.5rem', textAlign: 'center', fontFamily: 'Manrope', fontWeight: 700, marginBottom: '2rem', color: '#666' }}>
                 드래그하여 올바른 순서로 맞추세요
               </h3>
               
@@ -79,11 +79,11 @@ function SentencePuzzlePlayer({ pin, nickname }) {
                                 userSelect: 'none',
                                 padding: '1rem',
                                 margin: '0 0 8px 0',
-                                backgroundColor: snapshot.isDragging ? 'var(--ow-orange)' : 'var(--ow-darker)',
+                                backgroundColor: snapshot.isDragging ? 'var(--primary)' : 'var(--surface-highest)',
                                 color: 'white',
                                 fontSize: '1.5rem',
                                 fontWeight: 'bold',
-                                fontFamily: 'Noto Sans KR',
+                                fontFamily: 'Manrope',
                                 textAlign: 'center',
                                 borderRadius: '4px',
                                 boxShadow: snapshot.isDragging ? '0 10px 20px rgba(0,0,0,0.3)' : '0 4px 6px rgba(0,0,0,0.1)',
@@ -102,12 +102,12 @@ function SentencePuzzlePlayer({ pin, nickname }) {
               </DragDropContext>
 
               <button 
-                className="ow-button red" 
+                className="btn-primary" 
                 onClick={handleSubmit} 
                 disabled={result === 'waiting'}
                 style={{ width: '100%', marginTop: '2rem', padding: '1rem', fontSize: '2rem' }}
               >
-                <span style={{ transform: 'skewX(10deg)' }}>{result === 'waiting' ? 'WAIT...' : 'SUBMIT'}</span>
+                <span style={{ }}>{result === 'waiting' ? 'WAIT...' : 'SUBMIT'}</span>
               </button>
             </div>
           )}

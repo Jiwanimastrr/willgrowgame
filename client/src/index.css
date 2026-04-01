@@ -1,15 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+
 :root {
-  --ow-orange: #f99e1a;
-  --ow-dark: #1e293b;
-  --ow-darker: #0f172a;
-  --ow-light: #f8fafc;
-  --ow-blue: #0ea5e9;
-  --ow-red: #ef4444;
-  --ow-green: #10b981;
+  /* Cyber-Luxe Monolith Color Palette */
+  --bg-base: #060e20;
+  --surface-low: #091328;
+  --surface-container: #0f1930;
+  --surface-high: #141f38;
+  --surface-highest: #192540;
+  --surface-bright: #1f2b49;
+
+  --primary: #cc97ff;
+  --primary-dim: #9c48ea;
+  --secondary: #34b5fa;
+  --secondary-dim: #17a8ec;
+  --tertiary: #c5ffc9;
+  --tertiary-dim: #5bf083;
+
+  --error: #ff6e84;
+
+  --on-surface: #dee5ff;
+  --on-surface-variant: #a3aac4;
+  --outline-variant: #40485d;
 }
 
 body {
-  font-family: 'Noto Sans KR', sans-serif;
+  font-family: 'Manrope', sans-serif;
   line-height: 1.5;
   font-weight: 400;
   overflow-x: hidden;
@@ -18,16 +33,18 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+  background-color: var(--bg-base);
+  /* Deep void background with minimal radial glow */
   background-image: 
-    radial-gradient(circle at 15% 50%, rgba(249, 158, 26, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
-    linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-  background-attachment: fixed;
+    radial-gradient(circle at top right, rgba(204, 151, 255, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at bottom left, rgba(52, 181, 250, 0.05) 0%, transparent 40%);
+  color: var(--on-surface);
   overscroll-behavior-y: none;
-  color: var(--ow-light);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  margin: 0;
 }
 
 #root {
@@ -36,132 +53,125 @@ body {
   margin: 0 auto;
 }
 
-/* Overwatch specific typography */
-h1, h2, h3, .ow-title {
-  font-family: 'Teko', sans-serif;
-  text-transform: uppercase;
-  font-style: italic;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}
+/* Typography Scale */
+.display-lg { font-size: 3.5rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+.headline-lg { font-size: 2rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+.body-md { font-size: 1rem; font-family: 'Manrope', sans-serif; color: var(--on-surface); }
+.label-sm { font-size: 0.875rem; font-family: 'Manrope', sans-serif; color: var(--on-surface-variant); }
 
-/* Slanted Premium Button */
-.ow-button {
+/* Components: Glass & Layers */
+
+.glass-panel {
+  background: rgba(25, 37, 64, 0.5); /* surface-highest with opacity */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(64, 72, 93, 0.15); /* Ghost border */
+  border-radius: 1.5rem; /* xl roundedness */
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   position: relative;
-  background: linear-gradient(135deg, var(--ow-orange), #ea580c);
-  color: #fff;
-  font-family: 'Teko', sans-serif;
-  font-size: 2rem;
-  font-style: italic;
-  text-transform: uppercase;
-  font-weight: 600;
-  border: 1px solid rgba(255,255,255,0.3);
-  padding: 0.6rem 2.5rem;
-  cursor: pointer;
-  transform: skewX(-10deg);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 0 4px 15px rgba(249,158,26,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 150px;
   overflow: hidden;
-  border-radius: 4px;
 }
 
-.ow-button span {
-  transform: skewX(10deg); /* un-skew text */
-  position: relative;
-  z-index: 2;
+.surface-card {
+  background-color: var(--surface-highest);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(64, 72, 93, 0.15);
+}
+.surface-card:hover {
+  background-color: var(--surface-bright);
 }
 
-.ow-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 50%;
-  height: 100%;
-  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-  transform: skewX(-20deg);
-  transition: all 0.5s ease;
-  z-index: 1;
+/* Base button */
+.btn-primary {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1rem 2.5rem;
+  border-radius: 1.5rem;
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(156, 72, 234, 0.4);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(204, 151, 255, 0.6);
+}
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
-.ow-button:hover {
-  transform: skewX(-10deg) translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 25px rgba(249,158,26,0.6), inset 0 1px 0 rgba(255,255,255,0.5);
+/* Secondary Action */
+.btn-secondary {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1rem 2.5rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(64, 72, 93, 0.5);
+  background: transparent;
+  color: var(--secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.btn-secondary:hover {
+  background: rgba(52, 181, 250, 0.1);
+  border-color: var(--secondary);
+  box-shadow: 0 0 15px rgba(52, 181, 250, 0.3);
 }
 
-.ow-button:hover::before {
-  left: 150%;
+/* Red / Error action */
+.btn-danger {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 1rem 2.5rem;
+  border-radius: 1.5rem;
+  border: none;
+  background: linear-gradient(135deg, var(--error), #a70138);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(255, 110, 132, 0.4);
+}
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 110, 132, 0.6);
 }
 
-.ow-button:active {
-  transform: skewX(-10deg) scale(0.95);
-  box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
-}
-
-.ow-button.blue { 
-  background: linear-gradient(135deg, var(--ow-blue), #0284c7);
-  box-shadow: 0 4px 15px rgba(14,165,233,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-}
-.ow-button.blue:hover { box-shadow: 0 8px 25px rgba(14,165,233,0.6), inset 0 1px 0 rgba(255,255,255,0.5); }
-
-.ow-button.dark { 
-  background: linear-gradient(135deg, var(--ow-dark), #334155);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-
-.ow-button.red { 
-  background: linear-gradient(135deg, var(--ow-red), #b91c1c);
-  box-shadow: 0 4px 15px rgba(239,68,68,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
-}
-.ow-button.red:hover { box-shadow: 0 8px 25px rgba(239,68,68,0.6), inset 0 1px 0 rgba(255,255,255,0.5); }
-
-/* Premium Input Field */
-.ow-input {
-  font-family: 'Noto Sans KR', sans-serif;
+/* Input Fields */
+.luxe-input {
+  font-family: 'Manrope', sans-serif;
   font-size: 1.2rem;
   padding: 1rem 1.5rem;
-  border: 2px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.6);
-  color: #fff;
-  font-weight: 700;
+  border: none;
+  border-bottom: 2px solid rgba(64, 72, 93, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--on-surface);
+  font-weight: 600;
   text-align: center;
   outline: none;
   transition: all 0.3s;
   width: 100%;
   max-width: 300px;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-  backdrop-filter: blur(8px);
+  border-radius: 0.75rem 0.75rem 0 0;
 }
-.ow-input:focus {
-  border-color: var(--ow-orange);
-  box-shadow: 0 0 15px rgba(249, 158, 26, 0.4), inset 0 2px 4px rgba(0,0,0,0.2);
-  background: rgba(15, 23, 42, 0.8);
+.luxe-input:focus {
+  border-bottom-color: var(--primary);
+  background: rgba(31, 43, 73, 0.5); /* surface-bright with opacity */
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
-.ow-input::placeholder {
-  color: #64748b;
-}
-
-/* Base Panel - Glassmorphism */
-.ow-panel {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 2.5rem;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
-  position: relative;
-  border-radius: 16px;
-  color: white;
+.luxe-input::placeholder {
+  color: var(--on-surface-variant);
 }
 
-/* Host Container */
+/* Layouts */
 .host-container {
   display: flex;
   flex-direction: column;
@@ -175,80 +185,88 @@ h1, h2, h3, .ow-title {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 3rem;
-  background: linear-gradient(90deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9));
-  backdrop-filter: blur(10px);
-  color: white;
-  border-bottom: 4px solid var(--ow-orange);
-  transform: skewX(-5deg);
-  margin-left: -2vw;
-  margin-right: -2vw;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  border-radius: 4px;
+  background-color: var(--surface-low);
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
-.host-header > * {
-  transform: skewX(5deg);
+.logo {
+  height: 60px;
+  object-fit: contain;
+}
+.logo-placeholder {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-shadow: 0 0 10px rgba(204, 151, 255, 0.5);
+  letter-spacing: 2px;
 }
 
-/* Player Container */
 .player-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100vh;
+  height: 100vh;
   box-sizing: border-box;
+  padding: 2rem;
 }
 
-/* Grid Layouts */
+/* Grid Layouts for players */
 .grid-players {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 1.5rem;
 }
 
-.player-card {
-  background: linear-gradient(135deg, var(--ow-blue), #0284c7);
-  color: white;
+/* Player badge inside game */
+.player-badge {
+  background-color: var(--surface-highest);
+  color: var(--on-surface);
   padding: 1rem;
   text-align: center;
-  font-weight: bold;
-  font-family: 'Teko', sans-serif;
-  font-size: 1.8rem;
-  transform: skewX(-8deg);
-  border-radius: 8px;
-  box-shadow: 0 8px 15px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  transition: transform 0.2s;
-}
-.player-card:hover {
-  transform: skewX(-8deg) translateY(-5px);
-}
-.player-card > * {
-  transform: skewX(8deg);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-radius: 1rem;
+  border: 1px solid rgba(64, 72, 93, 0.15);
+  transition: all 0.2s;
 }
 
-@keyframes float {
-  0% { transform: translateY(0px) skewX(-2deg); }
-  50% { transform: translateY(-10px) skewX(-2deg); }
-  100% { transform: translateY(0px) skewX(-2deg); }
+.player-badge:hover {
+  background-color: var(--surface-bright);
 }
 
-@keyframes pulse-glow {
-  0% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.5)); transform: scale(1); }
-  50% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.9)); transform: scale(1.05); }
-  100% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.5)); transform: scale(1); }
+/* Utility Animations */
+@keyframes neonPulse {
+  0% { box-shadow: 0 0 5px rgba(204, 151, 255, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(204, 151, 255, 0.8), 0 0 30px rgba(156, 72, 234, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(204, 151, 255, 0.4); }
 }
 
+.neon-glow {
+  animation: neonPulse 2s infinite;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-enter {
+  animation: slideUpFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0,0,0,0.2); 
+  background: var(--surface-low);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--ow-blue); 
+  background: var(--surface-highest);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--ow-orange); 
+  background: var(--primary-dim);
 }

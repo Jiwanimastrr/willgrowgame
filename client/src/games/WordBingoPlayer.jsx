@@ -98,20 +98,20 @@ function WordBingoPlayer({ pin, nickname }) {
   if (!isReady) {
     return (
       <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '2.5rem', fontFamily: 'Teko', margin: 0, color: 'var(--ow-blue)' }}>BINGO SETUP</h2>
+        <h2 style={{ fontSize: '2.5rem', fontFamily: 'Space Grotesk', margin: 0, color: 'var(--secondary)' }}>BINGO SETUP</h2>
         <p>빙고판 크기를 선택하고 랜덤 채우기를 누르세요.</p>
         
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <button 
-            className="ow-button" 
-            style={{ background: boardSize === 16 ? 'var(--ow-orange)' : 'var(--ow-darker)' }}
+            className="btn-primary" 
+            style={{ background: boardSize === 16 ? 'var(--primary)' : 'var(--surface-highest)' }}
             onClick={() => setBoardSize(16)}
           >
             4 x 4 (16칸)
           </button>
           <button 
-            className="ow-button" 
-            style={{ background: boardSize === 25 ? 'var(--ow-orange)' : 'var(--ow-darker)' }}
+            className="btn-primary" 
+            style={{ background: boardSize === 25 ? 'var(--primary)' : 'var(--surface-highest)' }}
             onClick={() => setBoardSize(25)}
           >
             5 x 5 (25칸)
@@ -119,7 +119,7 @@ function WordBingoPlayer({ pin, nickname }) {
         </div>
 
         <button 
-          className="ow-button" 
+          className="btn-primary" 
           style={{ width: '100%', marginBottom: '1rem', background: '#eab308' }}
           onClick={handleAutoFill}
         >
@@ -128,8 +128,8 @@ function WordBingoPlayer({ pin, nickname }) {
 
         {myBoard.length > 0 && (
           <button 
-            className="ow-button" 
-            style={{ width: '100%', background: 'var(--ow-green)' }}
+            className="btn-primary" 
+            style={{ width: '100%', background: 'var(--tertiary)' }}
             onClick={() => setIsReady(true)}
           >
             ✅ 준비 완료 (Ready!)
@@ -142,12 +142,12 @@ function WordBingoPlayer({ pin, nickname }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '1rem', boxSizing: 'border-box' }}>
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-         <h2 style={{ margin: 0, fontFamily: 'Teko', fontSize: '2rem', color: 'var(--ow-red)' }}>
+         <h2 style={{ margin: 0, fontFamily: 'Space Grotesk', fontSize: '2rem', color: 'var(--error)' }}>
            BINGO LINES: <span style={{ fontSize: '3rem' }}>{bingoCount}</span>
          </h2>
          {drawnWords.length > 0 ? (
-           <div style={{ background: 'var(--ow-darker)', color: 'white', padding: '1rem', borderRadius: '8px' }}>
-             최근 나온 단어: <strong style={{ color: 'var(--ow-orange)', fontSize: '1.5rem' }}>{drawnWords[0]}</strong>
+           <div style={{ background: 'var(--surface-highest)', color: 'white', padding: '1rem', borderRadius: '8px' }}>
+             최근 나온 단어: <strong style={{ color: 'var(--primary)', fontSize: '1.5rem' }}>{drawnWords[0]}</strong>
            </div>
          ) : (
            <div style={{ color: '#888' }}>선생님이 단어를 뽑기를 기다리세요...</div>
@@ -166,9 +166,9 @@ function WordBingoPlayer({ pin, nickname }) {
             key={idx} 
             onClick={() => handleCellClick(idx)}
             style={{
-              background: marks[idx] ? 'var(--ow-green)' : 'white',
-              color: marks[idx] ? 'white' : 'var(--ow-darker)',
-              border: '2px solid var(--ow-dark)',
+              background: marks[idx] ? 'var(--tertiary)' : 'white',
+              color: marks[idx] ? 'white' : 'var(--surface-highest)',
+              border: '2px solid var(--surface-high)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -189,10 +189,10 @@ function WordBingoPlayer({ pin, nickname }) {
 
       {bingoCount >= 1 && (
         <button 
-          className="ow-button" 
+          className="btn-primary" 
           style={{ 
              marginTop: 'auto', 
-             background: bingoClaimed ? '#aaa' : 'var(--ow-red)', 
+             background: bingoClaimed ? '#aaa' : 'var(--error)', 
              fontSize: '3rem', 
              padding: '1rem' 
           }}

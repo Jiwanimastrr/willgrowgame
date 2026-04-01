@@ -7,15 +7,24 @@ function Home() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '2rem' }}>
-      <h1 className="ow-title" style={{ fontSize: '4rem', color: 'var(--ow-orange)', textShadow: '4px 4px 0 #000' }}>
-        WillGrow Word Battle
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '2rem' }} className="animate-enter">
+      {/* 윌그로우 로고 (로고 파일이 업로드되면 이 img 태그가 활성화됨) */}
+      <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" onError={(e) => {
+        e.target.style.display = 'none';
+        e.target.nextSibling.style.display = 'block';
+      }} />
+      <div className="logo-placeholder" style={{ display: 'none' }}>
+        WILLGROW
+      </div>
+      
+      <h1 className="display-lg" style={{ color: 'var(--on-surface)', textShadow: '0 4px 10px rgba(0,0,0,0.5)', marginBottom: '1rem', textAlign: 'center' }}>
+        Language Event Platform
       </h1>
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <button className="ow-button" onClick={() => navigate('/host')}>
+      <div style={{ display: 'flex', gap: '1.5rem' }}>
+        <button className="btn-secondary" onClick={() => navigate('/host')}>
           <span>Create Room (Host)</span>
         </button>
-        <button className="ow-button blue" onClick={() => navigate('/player')}>
+        <button className="btn-primary" onClick={() => navigate('/player')}>
           <span>Join Game (Player)</span>
         </button>
       </div>

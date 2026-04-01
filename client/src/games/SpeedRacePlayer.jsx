@@ -3,9 +3,9 @@ import { socket } from '../utils/socket';
 import { Check, X } from 'lucide-react';
 
 function SpeedRacePlayer({ pin, nickname }) {
-  const [question, setQuestion] = useState(null); // { meaning, options: [] }
-  const [raceData, setRaceData] = useState(null); // { type, timeRemaining, isActive, teams, playersInfo }
-  const [feedback, setFeedback] = useState(null); // 'correct' | 'wrong' | null
+  const [question, setQuestion] = useState(null);
+  const [raceData, setRaceData] = useState(null);
+  const [feedback, setFeedback] = useState(null);
   const [playerInfo, setPlayerInfo] = useState(null);
 
   useEffect(() => {
@@ -39,81 +39,85 @@ function SpeedRacePlayer({ pin, nickname }) {
   }, [nickname]);
 
   const handleAnswer = (ans) => {
-    if (feedback || !question) return; // 피드백 중이거나 문제가 없으면 클릭 무시
+    if (feedback || !question) return;
     socket.emit('submitRaceAnswer', { pin, answer: ans });
   };
 
   if (raceData && !raceData.isActive) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '4rem', color: 'var(--ow-red)', transform: 'skewX(-2deg)' }}>RACE FINISHED</h1>
-        <h2 style={{ fontSize: '2rem', fontFamily: 'Noto Sans KR' }}>내 점수: {playerInfo?.score || 0}점</h2>
+      <div className="animate-enter" style={{ padding: '2rem', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <h1 className="display-lg neon-glow" style={{ color: 'var(--primary)', marginBottom: '2rem' }}>RACE FINISHED</h1>
+        <h2 className="headline-lg" style={{ color: 'var(--on-surface)' }}>내 점수: {playerInfo?.score || 0}점</h2>
         {raceData.type === 'team' && playerInfo?.team && (
-           <h2 style={{ fontSize: '2rem', color: 'var(--ow-blue)' }}>우리팀: {raceData.teams[playerInfo.team]}점</h2>
+           <h2 className="headline-lg" style={{ color: 'var(--secondary)', marginTop: '1rem' }}>우리팀({playerInfo.team}): {raceData.teams[playerInfo.team]}점</h2>
         )}
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '1rem', boxSizing: 'border-box' }}>
-      {/* 상단 정보 영역 (헤더) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-         <div style={{ fontSize: '3rem', fontFamily: 'Teko', color: raceData?.timeRemaining <= 10 ? 'var(--ow-red)' : 'var(--ow-dark)' }}>
+    <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+      {/* Header Info */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+         <div className="display-lg" style={{ color: raceData?.timeRemaining <= 10 ? 'var(--error)' : 'var(--secondary)', textShadow: '0 0 15px currentColor' }}>
            {raceData?.timeRemaining || 60}s
          </div>
          <div style={{ textAlign: 'right' }}>
-           <div style={{ fontSize: '1.2rem', fontFamily: 'Noto Sans KR', fontWeight: 'bold' }}>{nickname}</div>
-           <div style={{ fontSize: '2rem', fontFamily: 'Teko', color: 'var(--ow-orange)' }}>SCORE: {playerInfo?.score || 0}</div>
+           <div className="body-md" style={{ color: 'var(--on-surface)', fontWeight: 'bold' }}>{nickname}</div>
+           <div className="headline-lg" style={{ color: 'var(--primary)' }}>SCORE: {playerInfo?.score || 0}</div>
            {raceData?.type === 'team' && playerInfo?.team && (
-             <div style={{ fontSize: '1.5rem', fontFamily: 'Teko', color: playerInfo.team === 'RED' ? '#ef4444' : playerInfo.team === 'BLUE' ? '#3b82f6' : playerInfo.team === 'GREEN' ? '#22c55e' : '#eab308' }}>
+             <div className="headline-lg" style={{ color: playerInfo.team === 'RED' ? 'var(--error)' : playerInfo.team === 'BLUE' ? 'var(--secondary)' : playerInfo.team === 'GREEN' ? 'var(--tertiary)' : 'var(--primary)' }}>
                {playerInfo.team} TEAM: {raceData.teams[playerInfo.team] || 0}
              </div>
            )}
          </div>
       </div>
 
-      {/* 문제 컴포넌트 */}
+      {/* Main Play Area */}
       {question ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
-          {/* 피드백 애니메이션 (O/X) */}
+          
           {feedback && (
              <div style={{
                 position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
                 zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center',
-                width: '150px', height: '150px', borderRadius: '50%',
-                background: feedback === 'correct' ? 'rgba(34, 197, 94, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-                animation: 'pulse 0.5s ease-out'
+                width: '180px', height: '180px', borderRadius: '50%',
+                background: feedback === 'correct' ? 'rgba(197, 255, 201, 0.9)' : 'rgba(255, 110, 132, 0.9)', /* tertiary or error */
+                boxShadow: feedback === 'correct' ? '0 0 40px var(--tertiary)' : '0 0 40px var(--error)',
+                animation: 'pulse-glow 0.5s ease-out forwards'
              }}>
-                {feedback === 'correct' ? <Check size={80} color="white" /> : <X size={80} color="white" />}
+                {feedback === 'correct' ? <Check size={100} color="var(--bg-base)" /> : <X size={100} color="var(--bg-base)" />}
              </div>
           )}
 
-          <div className="ow-panel" style={{ textAlign: 'center', transform: 'skewX(-2deg)', marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '3rem', fontFamily: 'Noto Sans KR', color: 'var(--ow-darker)', margin: '1rem 0' }}>
+          <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '3rem', padding: '3rem 2rem' }}>
+            <h2 className="display-lg" style={{ color: 'var(--on-surface)', margin: 0, textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
               {question.meaning}
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             {question.options.map((opt, idx) => {
-              const colors = ['blue', 'red', 'dark', 'green'];
-              const bcolor = colors[idx % 4];
+              // Create variants for modern look
+              const buttonClass = idx === 0 || idx === 3 ? 'btn-primary' : 'btn-secondary';
               
               return (
                 <button
                   key={idx}
-                  className={`ow-button ${bcolor}`}
+                  className={buttonClass}
                   style={{ 
-                    padding: '2rem', 
+                    padding: '3rem 1rem', 
                     fontSize: '1.5rem', 
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     opacity: feedback ? 0.7 : 1,
-                    pointerEvents: feedback ? 'none' : 'auto'
+                    pointerEvents: feedback ? 'none' : 'auto',
+                    minHeight: '120px'
                   }}
                   onClick={() => handleAnswer(opt)}
                 >
-                  <span style={{ transform: 'skewX(10deg)', fontFamily: 'Noto Sans KR', fontWeight: 'bold' }}>{opt}</span>
+                  <span className="headline-lg" style={{ wordBreak: 'break-word', textAlign: 'center' }}>{opt}</span>
                 </button>
               );
             })}
@@ -121,7 +125,7 @@ function SpeedRacePlayer({ pin, nickname }) {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-           <h2 style={{ fontSize: '2rem', color: '#888', fontStyle: 'italic' }}>문제를 기다리는 중...</h2>
+           <h2 className="headline-lg neon-glow" style={{ color: 'var(--on-surface-variant)' }}>Waiting for Question...</h2>
         </div>
       )}
     </div>
