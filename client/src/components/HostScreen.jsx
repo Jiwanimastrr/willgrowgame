@@ -138,21 +138,21 @@ function HostScreen() {
           <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Users size={32} color="var(--primary)" />
-          <span className="headline-lg" style={{ color: 'var(--primary)' }}>
+          <Users size={32} color="var(--ow-primary)" />
+          <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>
             {players.length} PLAYERS
           </span>
         </div>
       </header>
 
-      <main style={{ flex: 1, display: 'flex', gap: '2rem', paddingBottom: '2rem' }}>
+      <main style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '2rem', paddingBottom: '2rem' }}>
         
         {/* Left Side: Lobby & Dashboards */}
-        <section className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <section className="ow-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {gameState === 'lobby' ? (
             <div style={{ padding: '2rem' }}>
-              <h2 className="headline-lg" style={{ color: 'var(--secondary)', marginTop: 0 }}>
-                JOIN AT <span style={{ color: 'var(--primary)', textDecoration: 'underline' }}>{window.location.host}/player</span>
+              <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginTop: 0 }}>
+                JOIN AT <span style={{ color: 'var(--ow-primary)', textDecoration: 'underline' }}>{window.location.host}/player</span>
               </h2>
               <div style={{ display: 'flex', gap: '3rem', alignItems: 'center', marginTop: '3rem' }}>
                 {pin && (
@@ -162,7 +162,7 @@ function HostScreen() {
                 )}
                 <div>
                   <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem' }}>GAME PIN:</h3>
-                  <div className="display-lg" style={{ color: 'var(--primary)', letterSpacing: '4px', textShadow: '0 0 20px rgba(204,151,255,0.6)' }}>
+                  <div className="display-lg" style={{ color: 'var(--ow-primary)', letterSpacing: '4px', textShadow: '0 0 20px rgba(204,151,255,0.6)' }}>
                     {pin || 'LOADING...'}
                   </div>
                 </div>
@@ -181,14 +181,14 @@ function HostScreen() {
                    
                    {quizData.winner ? (
                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                       <h2 className="headline-lg" style={{ color: 'var(--tertiary)', margin: '0 0 1rem 0' }}>WINNER: {quizData.winner}</h2>
+                       <h2 className="headline-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 1rem 0' }}>WINNER: {quizData.winner}</h2>
                        <h3 className="body-md" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>ANSWER: {quizData.answer}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="btn-primary">
+                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn">
                          NEXT QUESTION
                        </button>
                      </div>
                    ) : (
-                     <div className="body-md" style={{ marginTop: '2rem', color: 'var(--secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR ANSWERS...</div>
+                     <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR ANSWERS...</div>
                    )}
                  </>
                ) : null}
@@ -203,14 +203,14 @@ function HostScreen() {
                    
                    {puzzleData.winner ? (
                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                       <h2 className="headline-lg" style={{ color: 'var(--tertiary)', margin: '0 0 1rem 0' }}>WINNER: {puzzleData.winner}</h2>
+                       <h2 className="headline-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 1rem 0' }}>WINNER: {puzzleData.winner}</h2>
                        <h3 className="body-md" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>ANSWER: {puzzleData.sentence}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="btn-primary">
+                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn">
                          NEXT PUZZLE
                        </button>
                      </div>
                    ) : (
-                     <div className="body-md" style={{ marginTop: '2rem', color: 'var(--secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR COMPLETED SENTENCES...</div>
+                     <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR COMPLETED SENTENCES...</div>
                    )}
                  </>
                ) : null}
@@ -218,19 +218,19 @@ function HostScreen() {
                {/* 3. Word Chain */}
                {gameState === 'wordChain' && chainData ? (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--primary)', margin: 0 }}>WORD CHAIN SURVIVAL</h3>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0 }}>WORD CHAIN SURVIVAL</h3>
                    
                    {chainGameOver ? (
                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                       <h2 className="display-lg" style={{ color: 'var(--primary)', margin: '0 0 1rem 0' }}>GAME OVER</h2>
-                       <h3 className="headline-lg" style={{ margin: '0 0 2rem 0', color: 'var(--tertiary)' }}>WINNER: {chainGameOver}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="btn-secondary">
+                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>GAME OVER</h2>
+                       <h3 className="headline-lg" style={{ margin: '0 0 2rem 0', color: 'var(--ow-primary-dim)' }}>WINNER: {chainGameOver}</h3>
+                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn-secondary">
                          PLAY AGAIN
                        </button>
                      </div>
                    ) : (
                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                       <div className="display-lg" style={{ color: chainData.timeRemaining <= 5 ? 'var(--error)' : 'var(--secondary)', textShadow: '0 0 10px currentColor' }}>
+                       <div className="display-lg" style={{ color: chainData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 10px currentColor' }}>
                          {chainData.timeRemaining}s
                        </div>
                        
@@ -238,7 +238,7 @@ function HostScreen() {
                          {chainData.chain.map((word, idx) => (
                            <div key={idx} className="surface-card" style={{ 
                              padding: '1rem 2rem', 
-                             borderColor: idx === chainData.chain.length - 1 ? 'var(--primary)' : 'rgba(64, 72, 93, 0.5)',
+                             borderColor: idx === chainData.chain.length - 1 ? 'var(--ow-primary)' : 'rgba(64, 72, 93, 0.5)',
                              boxShadow: idx === chainData.chain.length - 1 ? '0 0 15px rgba(204,151,255,0.4)' : 'none'
                            }}>
                              <span className="headline-lg">{word.toUpperCase()}</span>
@@ -248,7 +248,7 @@ function HostScreen() {
 
                        <div className="surface-card" style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                          <span className="body-md">현재 턴:</span>
-                         <strong className="headline-lg" style={{ color: 'var(--primary)' }}>
+                         <strong className="headline-lg" style={{ color: 'var(--ow-primary)' }}>
                            {chainData.playersInfo.find(p => p.id === chainData.currentPlayerId)?.nickname || '알 수 없음'}
                          </strong>
                        </div>
@@ -260,7 +260,7 @@ function HostScreen() {
                {/* 4. Digital Bingo */}
                {gameState === 'wordBingo' && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--primary)', margin: 0 }}>DIGITAL BINGO</h3>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0 }}>DIGITAL BINGO</h3>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
                      <button 
                        onClick={() => {
@@ -272,13 +272,13 @@ function HostScreen() {
                            alert('모든 단어를 다 뽑았습니다!');
                          }
                        }}
-                       className="btn-primary neon-glow"
+                       className="ow-btn neon-glow"
                      >
                        RANDOM DRAW
                      </button>
                      
                      {bingoDrawnWords.length > 0 && (
-                       <div className="display-lg" style={{ color: 'var(--secondary)', textShadow: '0 0 15px currentColor', margin: '2rem 0' }}>
+                       <div className="display-lg" style={{ color: 'var(--ow-secondary)', textShadow: '0 0 15px currentColor', margin: '2rem 0' }}>
                          {bingoDrawnWords[0].toUpperCase()}
                        </div>
                      )}
@@ -287,8 +287,8 @@ function HostScreen() {
                        {bingoDrawnWords.map((w, idx) => (
                           <div key={idx} className="surface-card" style={{ 
                             padding: '0.8rem 1.2rem', 
-                            borderColor: idx === 0 ? 'var(--secondary)' : 'rgba(64,72,93,0.3)',
-                            background: idx === 0 ? 'var(--surface-high)' : 'var(--surface-highest)'
+                            borderColor: idx === 0 ? 'var(--ow-secondary)' : 'rgba(64,72,93,0.3)',
+                            background: idx === 0 ? 'var(--ow-surface-light)' : 'var(--ow-surface-lighter)'
                           }}>
                             <span className="headline-lg">{w}</span>
                           </div>
@@ -296,8 +296,8 @@ function HostScreen() {
                      </div>
 
                      {bingoWinners.length > 0 && (
-                       <div className="surface-card neon-glow" style={{ marginTop: '2rem', width: '80%', textAlign: 'center', borderColor: 'var(--tertiary)' }}>
-                         <h2 className="headline-lg" style={{ color: 'var(--tertiary)', margin: '0 0 1rem 0' }}>🎉 BINGO WINNERS! 🎉</h2>
+                       <div className="surface-card neon-glow" style={{ marginTop: '2rem', width: '80%', textAlign: 'center', borderColor: 'var(--ow-primary-dim)' }}>
+                         <h2 className="headline-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 1rem 0' }}>🎉 BINGO WINNERS! 🎉</h2>
                          <div className="headline-lg">
                            {bingoWinners.map(w => w.nickname).join(', ')}
                          </div>
@@ -310,29 +310,29 @@ function HostScreen() {
                {/* 5. Category Bomb */}
                {gameState === 'categoryBomb' && bombData && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--error)', margin: 0, textShadow: '0 0 10px rgba(255,110,132,0.5)' }}>CATEGORY BOMB</h3>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-error)', margin: 0, textShadow: '0 0 10px rgba(255,110,132,0.5)' }}>CATEGORY BOMB</h3>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                      <h1 className="headline-lg" style={{ margin: '1rem 0', color: 'var(--on-surface)' }}>Category: {bombData.category}</h1>
                      
                      {bombExploded ? (
-                       <div className="surface-card neon-glow" style={{ borderColor: 'var(--error)', textAlign: 'center', marginTop: '2rem', padding: '3rem' }}>
-                         <h2 className="display-lg" style={{ color: 'var(--error)', margin: '0 0 1rem 0' }}>BOOM! 💥</h2>
+                       <div className="surface-card neon-glow" style={{ borderColor: 'var(--ow-error)', textAlign: 'center', marginTop: '2rem', padding: '3rem' }}>
+                         <h2 className="display-lg" style={{ color: 'var(--ow-error)', margin: '0 0 1rem 0' }}>BOOM! 💥</h2>
                          <h3 className="headline-lg" style={{ margin: '0 0 2rem 0' }}>
                            {players.find(p => p.id === bombExploded)?.nickname || '알 수 없음'} 탈락!
                          </h3>
-                         <button onClick={() => socket.emit('resumeBomb', { pin })} className="btn-secondary">
+                         <button onClick={() => socket.emit('resumeBomb', { pin })} className="ow-btn-secondary">
                            RESUME GAME
                          </button>
                        </div>
                      ) : (
                        <>
-                         <div className="display-lg" style={{ fontSize: '8rem', color: bombData.timeRemaining <= 5 ? 'var(--error)' : 'var(--primary)', textShadow: '0 0 20px currentColor' }}>
+                         <div className="display-lg" style={{ fontSize: '8rem', color: bombData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-primary)', textShadow: '0 0 20px currentColor' }}>
                            {bombData.timeRemaining}s
                          </div>
                          
-                         <div className="surface-card" style={{ marginTop: '2rem', padding: '1.5rem 3rem', borderColor: 'var(--primary)' }}>
+                         <div className="surface-card" style={{ marginTop: '2rem', padding: '1.5rem 3rem', borderColor: 'var(--ow-primary)' }}>
                            <span className="headline-lg" style={{ display: 'block' }}>
-                             폭탄 소지자: <span style={{ color: 'var(--primary)' }}>{bombData.playersInfo.find(p => p.id === bombData.currentPlayerId)?.nickname || '알 수 없음'}</span>
+                             폭탄 소지자: <span style={{ color: 'var(--ow-primary)' }}>{bombData.playersInfo.find(p => p.id === bombData.currentPlayerId)?.nickname || '알 수 없음'}</span>
                            </span>
                          </div>
 
@@ -348,15 +348,15 @@ function HostScreen() {
                {/* 6. Spelling Hunter */}
                {gameState === 'spellingHunter' && hunterData && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--secondary)', margin: 0 }}>SPELLING HUNTER</h3>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', margin: 0 }}>SPELLING HUNTER</h3>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
-                     <div className="display-lg" style={{ color: hunterData.timeRemaining <= 10 ? 'var(--error)' : 'var(--primary)', textShadow: '0 0 15px currentColor' }}>
+                     <div className="display-lg" style={{ color: hunterData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-primary)', textShadow: '0 0 15px currentColor' }}>
                        {hunterData.timeRemaining}s
                      </div>
                      
                      {!hunterData.isActive ? (
-                       <div className="surface-card neon-glow" style={{ marginTop: '2rem', padding: '2rem 4rem', borderColor: 'var(--primary)', textAlign: 'center' }}>
-                         <h2 className="display-lg" style={{ color: 'var(--primary)', margin: 0 }}>GAME OVER</h2>
+                       <div className="surface-card neon-glow" style={{ marginTop: '2rem', padding: '2rem 4rem', borderColor: 'var(--ow-primary)', textAlign: 'center' }}>
+                         <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0 }}>GAME OVER</h2>
                        </div>
                      ) : (
                         <div className="body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '1rem' }}>진행 중... 화면에서 단어들이 떨어집니다!</div>
@@ -367,7 +367,7 @@ function HostScreen() {
                        {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => (
                          <div key={idx} className="surface-card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem' }}>
                            <span className="headline-lg">{idx + 1}. {p.nickname}</span>
-                           <span className="headline-lg" style={{ color: 'var(--tertiary)' }}>{p.score} PT</span>
+                           <span className="headline-lg" style={{ color: 'var(--ow-primary-dim)' }}>{p.score} PT</span>
                          </div>
                        ))}
                      </div>
@@ -378,18 +378,18 @@ function HostScreen() {
                {/* 7 & 8. Speed Race */}
                {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && raceData && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
                      SPEED RACE ({raceData.type === 'team' ? 'TEAM' : 'SOLO'})
                    </h3>
                    
                    {raceWinner ? (
-                     <div className="surface-card neon-glow" style={{ marginTop: '3rem', padding: '3rem 5rem', textAlign: 'center', borderColor: 'var(--primary)' }}>
-                       <h2 className="display-lg" style={{ color: 'var(--primary)', margin: '0 0 1rem 0' }}>RACE FINISHED!</h2>
-                       <h3 className="headline-lg" style={{ margin: 0 }}>WINNER: <span style={{ color: 'var(--tertiary)' }}>{raceWinner}</span></h3>
+                     <div className="surface-card neon-glow" style={{ marginTop: '3rem', padding: '3rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)' }}>
+                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>RACE FINISHED!</h2>
+                       <h3 className="headline-lg" style={{ margin: 0 }}>WINNER: <span style={{ color: 'var(--ow-primary-dim)' }}>{raceWinner}</span></h3>
                      </div>
                    ) : (
                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
-                       <div className="display-lg" style={{ fontSize: '6rem', color: raceData.timeRemaining <= 10 ? 'var(--error)' : 'var(--secondary)', textShadow: '0 0 20px currentColor' }}>
+                       <div className="display-lg" style={{ fontSize: '6rem', color: raceData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
                          {raceData.timeRemaining}s
                        </div>
                        
@@ -400,11 +400,11 @@ function HostScreen() {
                                .sort((a,b) => b[1] - a[1])
                                .map(([team, score]) => (
                                  <div key={team} className="surface-card" style={{ display: 'flex', alignItems: 'center' }}>
-                                   <span className="headline-lg" style={{ width: '180px', color: team === 'RED' ? 'var(--error)' : team === 'BLUE' ? 'var(--secondary)' : team === 'GREEN' ? 'var(--tertiary)' : 'var(--primary)' }}>
+                                   <span className="headline-lg" style={{ width: '180px', color: team === 'RED' ? 'var(--ow-error)' : team === 'BLUE' ? 'var(--ow-secondary)' : team === 'GREEN' ? 'var(--ow-primary-dim)' : 'var(--ow-primary)' }}>
                                      {team} TEAM
                                    </span>
                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '24px', margin: '0 2rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                     <div style={{ width: `${Math.min(100, (score / 30) * 100)}%`, background: 'var(--primary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--primary)' }} />
+                                     <div style={{ width: `${Math.min(100, (score / 30) * 100)}%`, background: 'var(--ow-primary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--ow-primary)' }} />
                                    </div>
                                    <span className="headline-lg" style={{ width: '100px', textAlign: 'right' }}>{score} PTS</span>
                                  </div>
@@ -420,7 +420,7 @@ function HostScreen() {
                                    <span className="headline-lg" style={{ width: '50px', color: 'var(--on-surface-variant)' }}>#{idx + 1}</span>
                                    <span className="headline-lg" style={{ width: '200px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{p.nickname}</span>
                                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '16px', margin: '0 2rem', borderRadius: '8px', overflow: 'hidden' }}>
-                                     <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--secondary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px var(--secondary)' }} />
+                                     <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--ow-secondary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px var(--ow-secondary)' }} />
                                    </div>
                                    <span className="headline-lg" style={{ width: '80px', textAlign: 'right' }}>{p.score} PTS</span>
                                  </div>
@@ -454,35 +454,35 @@ function HostScreen() {
         </section>
 
         {/* Right Side: Game Controls (Cyber-Luxe Monolith Style) */}
-        <aside className="glass-panel" style={{ width: '380px', flexShrink: 0 }}>
-          <h2 className="headline-lg" style={{ color: 'var(--primary)', margin: '0 0 2rem 0', paddingBottom: '1rem', borderBottom: '1px solid rgba(64,72,93,0.5)' }}>
+        <aside className="ow-panel" style={{ width: '380px', flexShrink: 0 }}>
+          <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 2rem 0', paddingBottom: '1rem', borderBottom: '1px solid rgba(64,72,93,0.5)' }}>
             GAME MODES
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
               <span>Word Quiz</span> <Play size={20} />
             </button>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
               <span>Sentence Race</span> <Play size={20} />
             </button>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordChain')}>
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordChain')}>
               <span>Word Chain</span> <Play size={20} />
             </button>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
               setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo');
             }}>
               <span>Digital Bingo</span> <Play size={20} />
             </button>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('categoryBomb')}>
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('categoryBomb')}>
               <span>Category Bomb</span> <Play size={20} />
             </button>
-            <button className="btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('spellingHunter')}>
+            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('spellingHunter')}>
               <span>Spelling Hunter</span> <Play size={20} />
             </button>
-            <button className="btn-primary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem' }} onClick={() => startGame('speedRaceIndividual')}>
+            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem' }} onClick={() => startGame('speedRaceIndividual')}>
               <span>Speed Race (SOLO)</span> <Play size={20} />
             </button>
-            <button className="btn-primary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('speedRaceTeam')}>
+            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('speedRaceTeam')}>
               <span>Speed Race (TEAM)</span> <Play size={20} />
             </button>
           </div>
@@ -497,17 +497,17 @@ function HostScreen() {
           background: 'rgba(6, 14, 32, 0.9)', backdropFilter: 'blur(8px)', zIndex: 9999,
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
         }}>
-          <div className="glass-panel neon-glow" style={{ textAlign: 'center', padding: '4rem', maxWidth: '700px', width: '90%' }}>
-            <h2 className="headline-lg" style={{ color: 'var(--primary)', margin: '0 0 1rem 0' }}>APPROVAL REQUIRED</h2>
+          <div className="ow-panel neon-glow" style={{ textAlign: 'center', padding: '4rem', maxWidth: '700px', width: '90%' }}>
+            <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>APPROVAL REQUIRED</h2>
             <div className="body-md" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>
-              <strong style={{ color: 'var(--secondary)' }}>{judgeData.nickname}</strong> 님의 답변:
+              <strong style={{ color: 'var(--ow-secondary)' }}>{judgeData.nickname}</strong> 님의 답변:
             </div>
             <div className="display-lg" style={{ margin: '2rem 0', color: 'var(--on-surface)', textShadow: '0 0 20px rgba(255,255,255,0.3)' }}>
               "{judgeData.word.toUpperCase()}"
             </div>
             <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', marginTop: '3rem' }}>
               <button 
-                className="btn-primary" 
+                className="ow-btn" 
                 style={{ padding: '1.5rem 3rem' }}
                 onClick={() => {
                   socket.emit('hostJudgeResult', { pin, isCorrect: true, ...judgeData });
@@ -517,7 +517,7 @@ function HostScreen() {
                 ACCEPT (인정)
               </button>
               <button 
-                className="btn-danger" 
+                className="ow-btn-danger" 
                 style={{ padding: '1.5rem 3rem' }}
                 onClick={() => {
                   socket.emit('hostJudgeResult', { pin, isCorrect: false, ...judgeData });

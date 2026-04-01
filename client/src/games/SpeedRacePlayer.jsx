@@ -15,17 +15,22 @@ function SpeedRacePlayer({ pin, nickname }) {
     });
 
     socket.on('raceCorrectAnswer', () => {
+      if (window.soundFX) window.soundFX.playCorrect();
       setFeedback('correct');
       setTimeout(() => setFeedback(null), 800);
     });
 
     socket.on('raceWrongAnswer', () => {
+      if (window.soundFX) window.soundFX.playWrong();
       setFeedback('wrong');
       setTimeout(() => setFeedback(null), 800);
     });
 
     socket.on('raceState', (data) => {
       setRaceData(data);
+      if (data.timeRemaining <= 5 && data.timeRemaining > 0) {
+        if (window.soundFX) window.soundFX.playTick();
+      }
       const me = data.playersInfo?.find(p => p.nickname === nickname);
       if (me) setPlayerInfo(me);
     });
@@ -46,10 +51,10 @@ function SpeedRacePlayer({ pin, nickname }) {
   if (raceData && !raceData.isActive) {
     return (
       <div className="animate-enter" style={{ padding: '2rem', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <h1 className="display-lg neon-glow" style={{ color: 'var(--primary)', marginBottom: '2rem' }}>RACE FINISHED</h1>
+        <h1 className="display-lg neon-glow" style={{ color: 'var(--ow-primary)', marginBottom: '2rem' }}>RACE FINISHED</h1>
         <h2 className="headline-lg" style={{ color: 'var(--on-surface)' }}>내 점수: {playerInfo?.score || 0}점</h2>
         {raceData.type === 'team' && playerInfo?.team && (
-           <h2 className="headline-lg" style={{ color: 'var(--secondary)', marginTop: '1rem' }}>우리팀({playerInfo.team}): {raceData.teams[playerInfo.team]}점</h2>
+           <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginTop: '1rem' }}>우리팀({playerInfo.team}): {raceData.teams[playerInfo.team]}점</h2>
         )}
       </div>
     );
@@ -59,14 +64,14 @@ function SpeedRacePlayer({ pin, nickname }) {
     <div className="animate-enter" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
       {/* Header Info */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-         <div className="display-lg" style={{ color: raceData?.timeRemaining <= 10 ? 'var(--error)' : 'var(--secondary)', textShadow: '0 0 15px currentColor' }}>
+         <div className="display-lg" style={{ color: raceData?.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 15px currentColor' }}>
            {raceData?.timeRemaining || 60}s
          </div>
          <div style={{ textAlign: 'right' }}>
            <div className="body-md" style={{ color: 'var(--on-surface)', fontWeight: 'bold' }}>{nickname}</div>
-           <div className="headline-lg" style={{ color: 'var(--primary)' }}>SCORE: {playerInfo?.score || 0}</div>
+           <div className="headline-lg" style={{ color: 'var(--ow-primary)' }}>SCORE: {playerInfo?.score || 0}</div>
            {raceData?.type === 'team' && playerInfo?.team && (
-             <div className="headline-lg" style={{ color: playerInfo.team === 'RED' ? 'var(--error)' : playerInfo.team === 'BLUE' ? 'var(--secondary)' : playerInfo.team === 'GREEN' ? 'var(--tertiary)' : 'var(--primary)' }}>
+             <div className="headline-lg" style={{ color: playerInfo.team === 'RED' ? 'var(--ow-error)' : playerInfo.team === 'BLUE' ? 'var(--ow-secondary)' : playerInfo.team === 'GREEN' ? 'var(--ow-primary-dim)' : 'var(--ow-primary)' }}>
                {playerInfo.team} TEAM: {raceData.teams[playerInfo.team] || 0}
              </div>
            )}
@@ -83,14 +88,14 @@ function SpeedRacePlayer({ pin, nickname }) {
                 zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center',
                 width: '180px', height: '180px', borderRadius: '50%',
                 background: feedback === 'correct' ? 'rgba(197, 255, 201, 0.9)' : 'rgba(255, 110, 132, 0.9)', /* tertiary or error */
-                boxShadow: feedback === 'correct' ? '0 0 40px var(--tertiary)' : '0 0 40px var(--error)',
+                boxShadow: feedback === 'correct' ? '0 0 40px var(--ow-primary-dim)' : '0 0 40px var(--ow-error)',
                 animation: 'pulse-glow 0.5s ease-out forwards'
              }}>
                 {feedback === 'correct' ? <Check size={100} color="var(--bg-base)" /> : <X size={100} color="var(--bg-base)" />}
              </div>
           )}
 
-          <div className="glass-panel" style={{ textAlign: 'center', marginBottom: '3rem', padding: '3rem 2rem' }}>
+          <div className="ow-panel speed-thrust" style={{ textAlign: 'center', marginBottom: '3rem', padding: '3rem 2rem' }}>
             <h2 className="display-lg" style={{ color: 'var(--on-surface)', margin: 0, textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
               {question.meaning}
             </h2>
@@ -99,7 +104,7 @@ function SpeedRacePlayer({ pin, nickname }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             {question.options.map((opt, idx) => {
               // Create variants for modern look
-              const buttonClass = idx === 0 || idx === 3 ? 'btn-primary' : 'btn-secondary';
+              const buttonClass = idx === 0 || idx === 3 ? 'ow-btn' : 'ow-btn-secondary';
               
               return (
                 <button

@@ -13,8 +13,10 @@ function WordQuizPlayer({ pin, nickname }) {
 
     socket.on('correctAnswer', ({ winnerId, winnerNickname }) => {
       if (winnerId === socket.id) {
+        if (window.soundFX) window.soundFX.playCorrect();
         setResult('correct');
       } else {
+        if (window.soundFX) window.soundFX.playWrong();
         setResult(`Winner: ${winnerNickname}`);
       }
     });
@@ -32,13 +34,13 @@ function WordQuizPlayer({ pin, nickname }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--primary)', margin: '1rem 0' }}>WORD QUIZ CHAMPIONSHIP</h2>
+      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--ow-primary)', margin: '1rem 0' }}>WORD QUIZ CHAMPIONSHIP</h2>
       
       {question ? (
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '1rem', background: '#fff' }}>
+        <div className="ow-panel speed-thrust" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '1rem', background: 'var(--ow-surface)' }}>
            {result ? (
              <div style={{ textAlign: 'center' }}>
-               <h1 style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--tertiary)' : 'var(--error)' }}>
+               <h1 style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--ow-primary-dim)' : 'var(--ow-error)' }}>
                  {result === 'correct' ? 'CORRECT!' : result === 'waiting' ? 'WAIT...' : result}
                </h1>
              </div>
@@ -51,9 +53,9 @@ function WordQuizPlayer({ pin, nickname }) {
                  {question.options.map((opt, idx) => (
                    <button 
                      key={idx} 
-                     className="btn-primary" 
+                     className="ow-btn" 
                      onClick={() => handleAnswer(opt)}
-                     style={{ minWidth: '0', fontSize: '2rem', padding: '1.5rem', background: 'var(--secondary)', border: 'none' }}
+                     style={{ minWidth: '0', fontSize: '2rem', padding: '1.5rem', background: 'var(--ow-secondary)', border: 'none' }}
                    >
                      <span style={{ }}>{opt.toUpperCase()}</span>
                    </button>

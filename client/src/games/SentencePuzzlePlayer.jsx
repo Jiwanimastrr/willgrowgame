@@ -14,8 +14,10 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
     socket.on('puzzleCorrectAnswer', ({ winnerId, winnerNickname }) => {
       if (winnerId === socket.id) {
+        if (window.soundFX) window.soundFX.playWin();
         setResult('correct');
       } else {
+        if (window.soundFX) window.soundFX.playWrong();
         setResult(`Winner: ${winnerNickname}`);
       }
     });
@@ -44,13 +46,13 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--error)', margin: '1rem 0' }}>SENTENCE RACE</h2>
+      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--ow-error)', margin: '1rem 0' }}>SENTENCE RACE</h2>
       
       {tokens.length > 0 ? (
-        <div className="glass-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '1rem' }}>
+        <div className="ow-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', marginBottom: '1rem' }}>
           {result && result !== 'waiting' ? (
              <div style={{ textAlign: 'center', margin: 'auto' }}>
-               <h1 style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--tertiary)' : 'var(--error)' }}>
+               <h1 className={result === 'correct' ? 'puzzle-connected' : ''} style={{ fontSize: '3rem', margin: 0, color: result === 'correct' ? 'var(--ow-success)' : 'var(--ow-error)' }}>
                  {result === 'correct' ? 'CORRECT!' : result}
                </h1>
              </div>
@@ -79,7 +81,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
                                 userSelect: 'none',
                                 padding: '1rem',
                                 margin: '0 0 8px 0',
-                                backgroundColor: snapshot.isDragging ? 'var(--primary)' : 'var(--surface-highest)',
+                                backgroundColor: snapshot.isDragging ? 'var(--ow-primary)' : 'var(--ow-surface-lighter)',
                                 color: 'white',
                                 fontSize: '1.5rem',
                                 fontWeight: 'bold',
@@ -102,7 +104,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
               </DragDropContext>
 
               <button 
-                className="btn-primary" 
+                className="ow-btn" 
                 onClick={handleSubmit} 
                 disabled={result === 'waiting'}
                 style={{ width: '100%', marginTop: '2rem', padding: '1rem', fontSize: '2rem' }}

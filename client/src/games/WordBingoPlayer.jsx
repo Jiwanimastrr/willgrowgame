@@ -17,6 +17,7 @@ function WordBingoPlayer({ pin, nickname }) {
     });
 
     socket.on('bingoWordDrawn', ({ word }) => {
+      if (window.soundFX) window.soundFX.playTick();
       setDrawnWords(prev => [word, ...prev]);
     });
 
@@ -81,6 +82,7 @@ function WordBingoPlayer({ pin, nickname }) {
     if (!isReady) return; // 아직 준비단계이면 터치 무시
     const word = myBoard[index];
     if (drawnWords.includes(word)) {
+      if (!marks[index] && window.soundFX) window.soundFX.playCorrect();
       const newMarks = [...marks];
       newMarks[index] = true;
       setMarks(newMarks);
@@ -90,6 +92,7 @@ function WordBingoPlayer({ pin, nickname }) {
 
   const handleClaimBingo = () => {
     if (bingoCount > 0 && !bingoClaimed) {
+      if (window.soundFX) window.soundFX.playWin();
       socket.emit('claimBingo', { pin });
       setBingoClaimed(true);
     }
@@ -98,20 +101,20 @@ function WordBingoPlayer({ pin, nickname }) {
   if (!isReady) {
     return (
       <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '2.5rem', fontFamily: 'Space Grotesk', margin: 0, color: 'var(--secondary)' }}>BINGO SETUP</h2>
+        <h2 style={{ fontSize: '2.5rem', fontFamily: 'Space Grotesk', margin: 0, color: 'var(--ow-secondary)' }}>BINGO SETUP</h2>
         <p>빙고판 크기를 선택하고 랜덤 채우기를 누르세요.</p>
         
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
           <button 
-            className="btn-primary" 
-            style={{ background: boardSize === 16 ? 'var(--primary)' : 'var(--surface-highest)' }}
+            className="ow-btn" 
+            style={{ background: boardSize === 16 ? 'var(--ow-primary)' : 'var(--ow-surface-lighter)' }}
             onClick={() => setBoardSize(16)}
           >
             4 x 4 (16칸)
           </button>
           <button 
-            className="btn-primary" 
-            style={{ background: boardSize === 25 ? 'var(--primary)' : 'var(--surface-highest)' }}
+            className="ow-btn" 
+            style={{ background: boardSize === 25 ? 'var(--ow-primary)' : 'var(--ow-surface-lighter)' }}
             onClick={() => setBoardSize(25)}
           >
             5 x 5 (25칸)
@@ -119,7 +122,7 @@ function WordBingoPlayer({ pin, nickname }) {
         </div>
 
         <button 
-          className="btn-primary" 
+          className="ow-btn" 
           style={{ width: '100%', marginBottom: '1rem', background: '#eab308' }}
           onClick={handleAutoFill}
         >
@@ -128,8 +131,8 @@ function WordBingoPlayer({ pin, nickname }) {
 
         {myBoard.length > 0 && (
           <button 
-            className="btn-primary" 
-            style={{ width: '100%', background: 'var(--tertiary)' }}
+            className="ow-btn" 
+            style={{ width: '100%', background: 'var(--ow-primary-dim)' }}
             onClick={() => setIsReady(true)}
           >
             ✅ 준비 완료 (Ready!)
@@ -142,12 +145,12 @@ function WordBingoPlayer({ pin, nickname }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '1rem', boxSizing: 'border-box' }}>
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-         <h2 style={{ margin: 0, fontFamily: 'Space Grotesk', fontSize: '2rem', color: 'var(--error)' }}>
+         <h2 style={{ margin: 0, fontFamily: 'Space Grotesk', fontSize: '2rem', color: 'var(--ow-error)' }}>
            BINGO LINES: <span style={{ fontSize: '3rem' }}>{bingoCount}</span>
          </h2>
          {drawnWords.length > 0 ? (
-           <div style={{ background: 'var(--surface-highest)', color: 'white', padding: '1rem', borderRadius: '8px' }}>
-             최근 나온 단어: <strong style={{ color: 'var(--primary)', fontSize: '1.5rem' }}>{drawnWords[0]}</strong>
+           <div style={{ background: 'var(--ow-surface-lighter)', color: 'white', padding: '1rem', borderRadius: '8px' }}>
+             최근 나온 단어: <strong style={{ color: 'var(--ow-primary)', fontSize: '1.5rem' }}>{drawnWords[0]}</strong>
            </div>
          ) : (
            <div style={{ color: '#888' }}>선생님이 단어를 뽑기를 기다리세요...</div>
@@ -162,25 +165,11 @@ function WordBingoPlayer({ pin, nickname }) {
         maxHeight: '60vh'
       }}>
         {myBoard.map((word, idx) => (
-          <div 
-            key={idx} 
+          <div
+            key={idx}
             onClick={() => handleCellClick(idx)}
-            style={{
-              background: marks[idx] ? 'var(--tertiary)' : 'white',
-              color: marks[idx] ? 'white' : 'var(--surface-highest)',
-              border: '2px solid var(--surface-high)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              fontSize: boardSize === 25 ? '0.9rem' : '1.2rem',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              borderRadius: '4px',
-              wordBreak: 'break-all',
-              padding: '2px',
-              textAlign: 'center',
-              transition: 'all 0.2s'
-            }}
+            className={`bingo-cell ${marks[idx] ? 'bingo-marked-pop marked' : ''}`}
+            style={{ wordBreak: 'break-word', fontSize: boardSize === 25 ? '0.9rem' : '1.2rem', padding: '0.2rem' }}
           >
             {word}
           </div>
@@ -189,13 +178,7 @@ function WordBingoPlayer({ pin, nickname }) {
 
       {bingoCount >= 1 && (
         <button 
-          className="btn-primary" 
-          style={{ 
-             marginTop: 'auto', 
-             background: bingoClaimed ? '#aaa' : 'var(--error)', 
-             fontSize: '3rem', 
-             padding: '1rem' 
-          }}
+          className={`ow-btn ${bingoClaimed ? '' : 'ultimate-win'}`} style={{ marginTop: 'auto', fontSize: '3rem', padding: '1rem', background: bingoClaimed ? 'var(--ow-surface)' : 'var(--ow-primary)' }}
           onClick={handleClaimBingo}
           disabled={bingoClaimed}
         >

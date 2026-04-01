@@ -1,7 +1,18 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import HostScreen from './components/HostScreen';
 import PlayerScreen from './components/PlayerScreen';
+import { soundFX } from './utils/soundFX';
 import './index.css';
+
+window.soundFX = soundFX; // Expose globally for easy access in deeply nested games
+
+// Global click listener for button sound effects
+document.addEventListener('click', (e) => {
+  if (e.target.closest('.ow-btn') || e.target.closest('.ow-btn-secondary') || e.target.closest('.bingo-cell') || e.target.closest('button')) {
+    soundFX.playClick();
+  }
+});
 
 function Home() {
   const navigate = useNavigate();
@@ -21,10 +32,10 @@ function Home() {
         Language Event Platform
       </h1>
       <div style={{ display: 'flex', gap: '1.5rem' }}>
-        <button className="btn-secondary" onClick={() => navigate('/host')}>
+        <button className="ow-btn-secondary" onClick={() => navigate('/host')}>
           <span>Create Room (Host)</span>
         </button>
-        <button className="btn-primary" onClick={() => navigate('/player')}>
+        <button className="ow-btn" onClick={() => navigate('/player')}>
           <span>Join Game (Player)</span>
         </button>
       </div>

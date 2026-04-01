@@ -1,272 +1,472 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
 
 :root {
-  /* Cyber-Luxe Monolith Color Palette */
-  --bg-base: #060e20;
-  --surface-low: #091328;
-  --surface-container: #0f1930;
-  --surface-high: #141f38;
-  --surface-highest: #192540;
-  --surface-bright: #1f2b49;
+  /* Overwatch Protocol Design System */
+  
+  /* Colors */
+  --ow-primary: #f99e1a; /* Nuclear Orange */
+  --ow-primary-dim: #cc7800;
+  --ow-secondary: #00a2ff; /* Sky Blue */
+  --ow-secondary-dim: #007bb5;
+  
+  --ow-background: #1a1c23; /* Deep slate */
+  --ow-surface: #212c3f;
+  --ow-surface-light: #2c3a52;
+  --ow-surface-lighter: #3a4b69;
+  
+  --ow-error: #ff3333;
+  --ow-error-dim: #cc0000;
+  --ow-success: #33ff33;
+  
+  --ow-text-main: #ffffff;
+  --ow-text-muted: #abb4c4;
+  --ow-text-dark: #12141a;
+  
+  /* Typography */
+  --font-header: 'Teko', sans-serif;
+  --font-body: 'Noto Sans KR', sans-serif;
+  
+  /* Shapes & Metrics */
+  --ow-skew: -8deg;
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+}
 
-  --primary: #cc97ff;
-  --primary-dim: #9c48ea;
-  --secondary: #34b5fa;
-  --secondary-dim: #17a8ec;
-  --tertiary: #c5ffc9;
-  --tertiary-dim: #5bf083;
-
-  --error: #ff6e84;
-
-  --on-surface: #dee5ff;
-  --on-surface-variant: #a3aac4;
-  --outline-variant: #40485d;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: 'Manrope', sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  overflow-x: hidden;
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  font-family: var(--font-body);
+  background-color: var(--ow-background);
+  color: var(--ow-text-main);
+  line-height: 1.6;
   min-height: 100vh;
-  background-color: var(--bg-base);
-  /* Deep void background with minimal radial glow */
+  margin: 0;
+  overflow-x: hidden;
+  /* subtle diag pattern to give it a tech/arena vibe */
   background-image: 
-    radial-gradient(circle at top right, rgba(204, 151, 255, 0.05) 0%, transparent 40%),
-    radial-gradient(circle at bottom left, rgba(52, 181, 250, 0.05) 0%, transparent 40%);
-  color: var(--on-surface);
-  overscroll-behavior-y: none;
+    linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02)), 
+    linear-gradient(45deg, rgba(255,255,255,0.02) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.02) 75%, rgba(255,255,255,0.02));
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Space Grotesk', sans-serif;
-  margin: 0;
+  font-family: var(--font-header);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 600;
 }
 
-#root {
-  width: 100%;
-  height: 100vh;
-  margin: 0 auto;
+/* 
+  ========================================
+  Overwatch Core Components
+  ========================================
+*/
+
+/* Titles */
+.ow-title {
+  font-family: var(--font-header);
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  color: var(--ow-primary);
+  text-transform: uppercase;
+  font-style: italic;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+  margin-bottom: var(--spacing-md);
+  line-height: 1;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
-/* Typography Scale */
-.display-lg { font-size: 3.5rem; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
-.headline-lg { font-size: 2rem; font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
-.body-md { font-size: 1rem; font-family: 'Manrope', sans-serif; color: var(--on-surface); }
-.label-sm { font-size: 0.875rem; font-family: 'Manrope', sans-serif; color: var(--on-surface-variant); }
-
-/* Components: Glass & Layers */
-
-.glass-panel {
-  background: rgba(25, 37, 64, 0.5); /* surface-highest with opacity */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(64, 72, 93, 0.15); /* Ghost border */
-  border-radius: 1.5rem; /* xl roundedness */
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  position: relative;
-  overflow: hidden;
-}
-
-.surface-card {
-  background-color: var(--surface-highest);
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(64, 72, 93, 0.15);
-}
-.surface-card:hover {
-  background-color: var(--surface-bright);
-}
-
-/* Base button */
-.btn-primary {
-  font-family: 'Space Grotesk', sans-serif;
+.ow-subtitle {
+  font-family: var(--font-body);
   font-size: 1.25rem;
-  font-weight: 600;
-  padding: 1rem 2.5rem;
-  border-radius: 1.5rem;
-  border: none;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dim));
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(156, 72, 234, 0.4);
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(204, 151, 255, 0.6);
-}
-.btn-primary:active {
-  transform: scale(0.98);
-}
-
-/* Secondary Action */
-.btn-secondary {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: 1rem 2.5rem;
-  border-radius: 1.5rem;
-  border: 1px solid rgba(64, 72, 93, 0.5);
-  background: transparent;
-  color: var(--secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.btn-secondary:hover {
-  background: rgba(52, 181, 250, 0.1);
-  border-color: var(--secondary);
-  box-shadow: 0 0 15px rgba(52, 181, 250, 0.3);
-}
-
-/* Red / Error action */
-.btn-danger {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: 1rem 2.5rem;
-  border-radius: 1.5rem;
-  border: none;
-  background: linear-gradient(135deg, var(--error), #a70138);
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(255, 110, 132, 0.4);
-}
-.btn-danger:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 110, 132, 0.6);
-}
-
-/* Input Fields */
-.luxe-input {
-  font-family: 'Manrope', sans-serif;
-  font-size: 1.2rem;
-  padding: 1rem 1.5rem;
-  border: none;
-  border-bottom: 2px solid rgba(64, 72, 93, 0.3);
-  background: rgba(0, 0, 0, 0.3);
-  color: var(--on-surface);
-  font-weight: 600;
-  text-align: center;
-  outline: none;
-  transition: all 0.3s;
-  width: 100%;
-  max-width: 300px;
-  border-radius: 0.75rem 0.75rem 0 0;
-}
-.luxe-input:focus {
-  border-bottom-color: var(--primary);
-  background: rgba(31, 43, 73, 0.5); /* surface-bright with opacity */
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-.luxe-input::placeholder {
-  color: var(--on-surface-variant);
-}
-
-/* Layouts */
-.host-container {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  padding: 2rem;
-  box-sizing: border-box;
-}
-
-.host-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem 3rem;
-  background-color: var(--surface-low);
-  border-radius: 1rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-}
-
-.logo {
-  height: 60px;
-  object-fit: contain;
-}
-.logo-placeholder {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 2rem;
+  color: var(--ow-secondary);
   font-weight: 700;
-  color: var(--primary);
-  text-shadow: 0 0 10px rgba(204, 151, 255, 0.5);
+  text-transform: uppercase;
   letter-spacing: 2px;
 }
 
-.player-container {
+/* Panels */
+.ow-panel {
+  background-color: var(--ow-surface);
+  border: 2px solid var(--ow-surface-lighter);
+  padding: clamp(var(--spacing-md), 4vw, var(--spacing-xl));
+  position: relative;
+  /* Slant the container */
+  transform: skewX(var(--ow-skew));
+  box-shadow: 10px 10px 0px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* Un-skew inner content so text is readable */
+.ow-panel > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+.ow-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background-color: var(--ow-primary);
+}
+
+/* Buttons */
+.ow-btn {
+  font-family: var(--font-header);
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: var(--spacing-sm) clamp(var(--spacing-md), 3vw, var(--spacing-xl));
+  cursor: pointer;
+  border: none;
+  background-color: var(--ow-primary);
+  color: var(--ow-text-dark);
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: skewX(var(--ow-skew));
+  display: inline-block;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.ow-btn-content {
+  display: inline-block;
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+.ow-btn:hover {
+  background-color: var(--ow-text-main);
+  color: var(--ow-primary-dim);
+  box-shadow: 0 0 15px rgba(249, 158, 26, 0.6);
+  transform: skewX(var(--ow-skew)) scale(1.05);
+}
+
+.ow-btn:active {
+  transform: skewX(var(--ow-skew)) scale(0.98);
+}
+
+.ow-btn-secondary {
+  background-color: var(--ow-surface-light);
+  color: var(--ow-text-main);
+  border: 2px solid var(--ow-secondary);
+}
+
+.ow-btn-secondary:hover {
+  background-color: var(--ow-secondary);
+  color: var(--ow-text-dark);
+  box-shadow: 0 0 15px rgba(0, 162, 255, 0.6);
+}
+
+.ow-btn-danger {
+  background-color: var(--ow-error);
+  color: var(--ow-text-main);
+}
+.ow-btn-danger:hover {
+  background-color: var(--ow-error-dim);
+  box-shadow: 0 0 15px rgba(255, 51, 51, 0.6);
+}
+
+/* Inputs */
+.ow-input {
+  font-family: var(--font-body);
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--ow-surface-lighter);
+  color: var(--ow-text-main);
+  padding: var(--spacing-md);
+  font-size: 1rem;
+  width: 100%;
+  transform: skewX(var(--ow-skew));
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.ow-input:focus {
+  border-color: var(--ow-primary);
+  background-color: rgba(26, 28, 35, 0.8);
+  box-shadow: inset 4px 0 0 var(--ow-primary);
+}
+
+/* Grid & Layout Utilities */
+.ow-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  box-sizing: border-box;
-  padding: 2rem;
+  gap: var(--spacing-lg);
 }
 
-/* Grid Layouts for players */
+.ow-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-lg); }
+.ow-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-lg); }
+.ow-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-lg); }
+
+/* Badges / Accents */
+.ow-badge {
+  background-color: var(--ow-secondary);
+  color: var(--ow-text-dark);
+  font-family: var(--font-header);
+  font-size: 1.25rem;
+  padding: 2px 12px;
+  text-transform: uppercase;
+  transform: skewX(var(--ow-skew));
+  display: inline-block;
+}
+.ow-badge > span {
+  display: inline-block;
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+/* Player/Score Cards */
+.ow-player-card {
+  background: linear-gradient(90deg, var(--ow-surface) 0%, var(--ow-surface-light) 100%);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-left: 6px solid var(--ow-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transform: skewX(var(--ow-skew));
+  transition: transform 0.2s;
+}
+
+.ow-player-card:hover {
+  transform: skewX(var(--ow-skew)) translateX(10px);
+  border-left-color: var(--ow-primary);
+}
+
+.ow-player-card > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+.ow-score {
+  font-family: var(--font-header);
+  font-size: 2.5rem;
+  color: var(--ow-text-main);
+}
+
 .grid-players {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
 }
 
-/* Player badge inside game */
 .player-badge {
-  background-color: var(--surface-highest);
-  color: var(--on-surface);
-  padding: 1rem;
+  background-color: var(--ow-surface-lighter);
+  color: var(--ow-text-main);
+  padding: var(--spacing-sm) var(--spacing-md);
   text-align: center;
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: 1.2rem;
-  font-weight: 600;
-  border-radius: 1rem;
-  border: 1px solid rgba(64, 72, 93, 0.15);
+  font-weight: 500;
+  border-left: 3px solid var(--ow-primary);
+  transform: skewX(var(--ow-skew));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.player-badge > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+/* Modals */
+.ow-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Toast/Alerts */
+.ow-alert {
+  background-color: var(--ow-primary);
+  color: var(--ow-text-dark);
+  font-family: var(--font-header);
+  font-size: 1.5rem;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  text-transform: uppercase;
+  transform: skewX(var(--ow-skew));
+  border-right: 4px solid #fff;
+}
+.ow-alert > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+/* Lists */
+.ow-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ow-list li {
+  background-color: rgba(255,255,255,0.05);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-left: 3px solid var(--ow-surface-lighter);
+  transform: skewX(var(--ow-skew));
+}
+.ow-list li > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+
+/* Specific game classes (WordBingo, etc) */
+.bingo-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+.bingo-cell {
+  background-color: var(--ow-surface-light);
+  border: 2px solid var(--ow-surface-lighter);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  aspect-ratio: 1;
+  font-weight: 500;
+  font-size: clamp(0.9rem, 1.5vw, 1.2rem);
+  transform: skewX(var(--ow-skew));
   transition: all 0.2s;
+  cursor: pointer;
+}
+.bingo-cell > * {
+  transform: skewX(calc(var(--ow-skew) * -1));
+}
+.bingo-cell.marked {
+  background-color: var(--ow-primary);
+  color: var(--ow-text-dark);
+  border-color: #fff;
+  transform: skewX(var(--ow-skew)) scale(1.05);
+  z-index: 2;
 }
 
-.player-badge:hover {
-  background-color: var(--surface-bright);
+.glass-panel, .luxe-input, .btn-primary {
+  /* Backwards compatibility / override from previous Luxe design */
+  background-color: var(--ow-surface) !important;
+  border-radius: 0 !important;
+  backdrop-filter: none !important;
+  border: 2px solid var(--ow-surface-lighter) !important;
+  box-shadow: 5px 5px 0px rgba(0,0,0,0.5) !important;
 }
 
-/* Utility Animations */
-@keyframes neonPulse {
-  0% { box-shadow: 0 0 5px rgba(204, 151, 255, 0.4); }
-  50% { box-shadow: 0 0 20px rgba(204, 151, 255, 0.8), 0 0 30px rgba(156, 72, 234, 0.6); }
-  100% { box-shadow: 0 0 5px rgba(204, 151, 255, 0.4); }
+/* Helper for reverting glass text */
+.text-transparent {
+  color: var(--ow-primary) !important;
+  -webkit-text-fill-color: var(--ow-primary) !important;
 }
 
-.neon-glow {
-  animation: neonPulse 2s infinite;
+/* 
+  ========================================
+  Game-Specific Overwatch Effects
+  ========================================
+*/
+
+/* 1. Bomb Game (Shake & Explode) */
+@keyframes bombShake {
+  0% { transform: skewX(var(--ow-skew)) translate(1px, 1px) rotate(0deg); }
+  10% { transform: skewX(var(--ow-skew)) translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: skewX(var(--ow-skew)) translate(-3px, 0px) rotate(1deg); }
+  30% { transform: skewX(var(--ow-skew)) translate(3px, 2px) rotate(0deg); }
+  40% { transform: skewX(var(--ow-skew)) translate(1px, -1px) rotate(1deg); }
+  50% { transform: skewX(var(--ow-skew)) translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: skewX(var(--ow-skew)) translate(-3px, 1px) rotate(0deg); }
+  70% { transform: skewX(var(--ow-skew)) translate(3px, 1px) rotate(-1deg); }
+  80% { transform: skewX(var(--ow-skew)) translate(-1px, -1px) rotate(1deg); }
+  90% { transform: skewX(var(--ow-skew)) translate(1px, 2px) rotate(0deg); }
+  100% { transform: skewX(var(--ow-skew)) translate(1px, -2px) rotate(-1deg); }
 }
 
-@keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-enter {
-  animation: slideUpFade 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.bomb-shaking {
+  animation: bombShake 0.15s infinite;
+  box-shadow: 0 0 20px var(--ow-error) !important;
+  border-color: var(--ow-error) !important;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
+@keyframes explosionFlash {
+  0% { filter: brightness(1) invert(0); background-color: var(--ow-surface); }
+  30% { filter: brightness(2) invert(1); background-color: var(--ow-error); box-shadow: 0 0 50px var(--ow-error); }
+  100% { filter: brightness(1) invert(0); background-color: var(--ow-surface); }
 }
-::-webkit-scrollbar-track {
-  background: var(--surface-low);
+
+.bomb-exploded {
+  animation: explosionFlash 0.5s ease-out;
 }
-::-webkit-scrollbar-thumb {
-  background: var(--surface-highest);
-  border-radius: 4px;
+
+/* 2. Speed Race (Thrust / Scanline) */
+@keyframes speedThrust {
+  0% { background-position: -200% auto; }
+  100% { background-position: 200% auto; }
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--primary-dim);
+.speed-thrust {
+  position: relative;
+}
+.speed-thrust::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(249, 158, 26, 0.4), transparent);
+  background-size: 200% auto;
+  animation: speedThrust 1s infinite linear;
+  pointer-events: none;
+  z-index: 10;
+  transform: skewX(calc(var(--ow-skew) * -1));  /* counteract panel skew inside */
+}
+
+/* 3. Spelling Hunter (Crosshair Flash) */
+@keyframes snipeHit {
+  0% { transform: skewX(var(--ow-skew)) scale(1); box-shadow: 0 0 0 transparent; }
+  50% { transform: skewX(var(--ow-skew)) scale(1.1); box-shadow: 0 0 30px var(--ow-secondary), inset 0 0 30px var(--ow-secondary); border-color: var(--ow-secondary); }
+  100% { transform: skewX(var(--ow-skew)) scale(1); box-shadow: 0 0 0 transparent; }
+}
+.hunter-hit {
+  animation: snipeHit 0.3s ease-out forwards;
+}
+
+/* 4. Bingo (Popping cell) */
+@keyframes bingoPop {
+  0% { transform: skewX(var(--ow-skew)) scale(1); }
+  50% { transform: skewX(var(--ow-skew)) scale(1.2); z-index: 10; background-color: var(--ow-primary); }
+  100% { transform: skewX(var(--ow-skew)) scale(1); z-index: 2; background-color: var(--ow-primary); }
+}
+.bingo-marked-pop {
+  animation: bingoPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Win Screen Ultimate Effect */
+@keyframes ultimateGlow {
+  0% { box-shadow: 0 0 20px var(--ow-primary); border-color: var(--ow-primary); }
+  50% { box-shadow: 0 0 60px var(--ow-primary), inset 0 0 30px var(--ow-primary); border-color: #fff; }
+  100% { box-shadow: 0 0 20px var(--ow-primary); border-color: var(--ow-primary); }
+}
+.ultimate-win {
+  animation: ultimateGlow 2s infinite alternate;
+}
+
+/* Puzzle connect */
+@keyframes puzzleConnect {
+  0% { border-color: var(--ow-surface-lighter); }
+  30% { border-color: var(--ow-success); box-shadow: 0 0 20px var(--ow-success); transform: skewX(var(--ow-skew)) translateX(-5px); }
+  100% { border-color: var(--ow-success); box-shadow: 0 0 5px var(--ow-success); transform: skewX(var(--ow-skew)) translateX(0); }
+}
+.puzzle-connected {
+  animation: puzzleConnect 0.4s ease-out forwards;
 }

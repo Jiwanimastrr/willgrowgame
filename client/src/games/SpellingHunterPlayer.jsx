@@ -12,6 +12,9 @@ function SpellingHunterPlayer({ pin, nickname }) {
   useEffect(() => {
     socket.on('hunterState', (data) => {
       setHunterState(prev => {
+        if (data.timeRemaining <= 5 && data.timeRemaining > 0 && (!prev || prev.timeRemaining !== data.timeRemaining)) {
+          if (window.soundFX) window.soundFX.playTick();
+        }
         if (!prev) return data; // 초기 세팅
         return { ...prev, ...data }; // 부분 업데이트
       });
@@ -64,6 +67,7 @@ function SpellingHunterPlayer({ pin, nickname }) {
   const handleWordTouch = (item) => {
     // 이미 팝업이 떠있으면 무시
     if (selectedWord) return;
+    if (window.soundFX) window.soundFX.playLaser();
 
     // 해당 항목을 화면에서 지우고 팝업 표시
     setFallingItems(prev => prev.filter(i => i.id !== item.id));
@@ -79,10 +83,11 @@ function SpellingHunterPlayer({ pin, nickname }) {
   const handleOptionSelect = (option) => {
     if (option === selectedWord.dbItem.correct) {
       // 정답
+      if (window.soundFX) window.soundFX.playCorrect();
       socket.emit('hunterScore', { pin, points: 10 });
     } else {
       // 오답 패널티 (점수 깎거나 진동 등)
-      // 여기서는 그냥 넘어감
+      if (window.soundFX) window.soundFX.playWrong();
     }
     // 팝업 닫기
     setSelectedWord(null);
@@ -99,13 +104,13 @@ function SpellingHunterPlayer({ pin, nickname }) {
       
       {/* 상단 UI */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', zIndex: 10, boxSizing: 'border-box' }}>
-        <div style={{ fontSize: '1.5rem', fontFamily: 'Space Grotesk', color: 'var(--error)' }}>TIME: {hunterState.timeRemaining}s</div>
+        <div style={{ fontSize: '1.5rem', fontFamily: 'Space Grotesk', color: 'var(--ow-error)' }}>TIME: {hunterState.timeRemaining}s</div>
         <div style={{ fontSize: '1.2rem', fontFamily: 'Manrope' }}>{nickname}</div>
       </div>
 
       {isGameOver && (
          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'rgba(0,0,0,0.8)', zIndex: 100 }}>
-           <h1 style={{ fontSize: '4rem', color: 'var(--primary)', margin: 0 }}>TIME UP!</h1>
+           <h1 style={{ fontSize: '4rem', color: 'var(--ow-primary)', margin: 0 }}>TIME UP!</h1>
            <p style={{ fontSize: '1.5rem', color: '#ccc' }}>호스트 메인 화면의 결과를 확인하세요.</p>
          </div>
       )}
@@ -115,23 +120,19 @@ function SpellingHunterPlayer({ pin, nickname }) {
         <div 
           key={item.id}
           onClick={() => handleWordTouch(item)}
+          className="ow-badge hunter-hit"
           style={{
             position: 'absolute',
             left: `${item.left}%`,
             top: '-50px', // 시작 위치
             animation: `fall ${item.speed}s linear forwards`,
-            background: 'var(--surface-highest)',
-            padding: '0.8rem 1.5rem',
-            borderRadius: '50px',
-            border: '3px solid var(--secondary)',
             cursor: 'pointer',
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
+            padding: '1rem',
             boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-            transform: 'translateX(-50%)'
+            transform: 'translateX(-50%) skewX(var(--ow-skew))'
           }}
         >
-          {item.text}
+          <span>{item.text}</span>
         </div>
       ))}
 
@@ -143,9 +144,9 @@ function SpellingHunterPlayer({ pin, nickname }) {
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
           zIndex: 50
         }}>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', textAlign: 'center', width: '80%', maxWidth: '300px' }}>
-            <h3 style={{ color: 'var(--surface-highest)', margin: '0 0 1rem 0' }}>올바른 철자를 찾아라!</h3>
-            <p style={{ fontSize: '2rem', color: 'var(--error)', fontWeight: 'bold', margin: '0 0 2rem 0', textDecoration: 'line-through' }}>
+          <div className="ow-panel hunter-hit" style={{ width: '80%', maxWidth: '300px', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--ow-text-muted)', margin: '0 0 1rem 0' }}>올바른 철자를 찾아라!</h3>
+            <p className="ow-title" style={{ color: 'var(--ow-error)', textDecoration: 'line-through', margin: '0 0 2rem 0', fontSize: '3rem' }}>
               {selectedWord.text}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -153,8 +154,8 @@ function SpellingHunterPlayer({ pin, nickname }) {
                 <button 
                   key={idx}
                   onClick={() => handleOptionSelect(opt)}
-                  className="btn-primary"
-                  style={{ width: '100%', padding: '1rem', fontSize: '1.5rem', background: 'var(--secondary)' }}
+                  className="ow-btn"
+                  style={{ width: '100%' }}
                 >
                   {opt}
                 </button>
