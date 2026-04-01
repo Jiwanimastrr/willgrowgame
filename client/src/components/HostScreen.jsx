@@ -21,6 +21,8 @@ function HostScreen() {
   const [bombExploded, setBombExploded] = useState(null);
 
   const [hunterData, setHunterData] = useState(null);
+  const [raceData, setRaceData] = useState(null);
+  const [raceWinner, setRaceWinner] = useState(null);
 
   useEffect(() => {
     socket.connect();
@@ -84,6 +86,11 @@ function HostScreen() {
     socket.on('bombExploded', ({ id }) => setBombExploded(id));
 
     socket.on('hunterState', (data) => setHunterData(data));
+    socket.on('raceState', (data) => {
+      setRaceData(data);
+      setRaceWinner(null);
+    });
+    socket.on('raceGameOver', ({ winner }) => setRaceWinner(winner));
 
     return () => {
       socket.off('playersUpdated');
@@ -101,6 +108,8 @@ function HostScreen() {
       socket.off('bombState');
       socket.off('bombExploded');
       socket.off('hunterState');
+      socket.off('raceState');
+      socket.off('raceGameOver');
       socket.disconnect();
     };
   }, []);
@@ -356,6 +365,64 @@ function HostScreen() {
                     </div>
                   </>
                 )}
+
+                {/* 7, 8. Speed Race */}
+                {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && raceData && (
+                  <>
+                    <h3 style={{ fontSize: '2rem', color: '#666', transform: 'skewX(2deg)', margin: 0 }}>
+                      SPEED RACE ({raceData.type === 'team' ? 'TEAM' : 'SOLO'})
+                    </h3>
+                    
+                    {raceWinner ? (
+                      <div style={{ background: 'var(--ow-blue)', padding: '1rem 3rem', color: 'white', transform: 'skewX(-5deg)', marginTop: '2rem' }}>
+                        <h2 style={{ fontSize: '3rem', margin: 0, transform: 'skewX(5deg)' }}>RACE FINISHED!</h2>
+                        <h3 style={{ fontSize: '2rem', margin: 0, transform: 'skewX(5deg)' }}>WINNER: {raceWinner}</h3>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                        <div style={{ fontSize: '6rem', fontFamily: 'Teko', color: raceData.timeRemaining <= 10 ? 'var(--ow-red)' : 'var(--ow-blue)' }}>
+                          {raceData.timeRemaining}s
+                        </div>
+                        
+                        <div style={{ width: '100%', marginTop: '2rem' }}>
+                          {raceData.type === 'team' ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                              {Object.entries(raceData.teams)
+                                .sort((a,b) => b[1] - a[1])
+                                .map(([team, score]) => (
+                                  <div key={team} style={{ display: 'flex', alignItems: 'center', background: 'var(--ow-darker)', color: 'white', padding: '1rem', borderRadius: '4px' }}>
+                                    <span style={{ fontSize: '2rem', width: '150px', fontWeight: 'bold', color: team === 'RED' ? '#ef4444' : team === 'BLUE' ? '#3b82f6' : team === 'GREEN' ? '#22c55e' : '#eab308' }}>
+                                      {team} TEAM
+                                    </span>
+                                    <div style={{ flex: 1, background: '#333', height: '30px', margin: '0 1rem', borderRadius: '15px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${Math.min(100, (score / 30) * 100)}%`, background: 'var(--ow-blue)', height: '100%', transition: 'width 0.3s ease' }} />
+                                    </div>
+                                    <span style={{ fontSize: '2rem', fontFamily: 'Teko' }}>{score} PTS</span>
+                                  </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                              {[...raceData.playersInfo]
+                                .sort((a,b) => b.score - a.score)
+                                .slice(0, 5)
+                                .map((p, idx) => (
+                                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', background: 'var(--ow-darker)', color: 'white', padding: '1rem', borderRadius: '4px' }}>
+                                    <span style={{ fontSize: '1.5rem', width: '50px' }}>#{idx + 1}</span>
+                                    <span style={{ fontSize: '1.5rem', width: '150px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{p.nickname}</span>
+                                    <div style={{ flex: 1, background: '#333', height: '20px', margin: '0 1rem', borderRadius: '10px', overflow: 'hidden' }}>
+                                      <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--ow-orange)', height: '100%', transition: 'width 0.3s ease' }} />
+                                    </div>
+                                    <span style={{ fontSize: '1.5rem', fontFamily: 'Teko' }}>{p.score} PTS</span>
+                                  </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
             </div>
           )}
 
@@ -432,6 +499,22 @@ function HostScreen() {
               onClick={() => startGame('spellingHunter')}
             >
               <span>6. SPELLING HUNTER</span>
+              <Play size={24} />
+            </button>
+            <button 
+              className="ow-button" 
+              style={{ width: '100%', justifyContent: 'space-between', background: '#0284c7', border: '2px solid white' }}
+              onClick={() => startGame('speedRaceIndividual')}
+            >
+              <span>7. SPEED RACE (개인)</span>
+              <Play size={24} />
+            </button>
+            <button 
+              className="ow-button" 
+              style={{ width: '100%', justifyContent: 'space-between', background: '#ea580c', border: '2px solid white' }}
+              onClick={() => startGame('speedRaceTeam')}
+            >
+              <span>8. SPEED RACE (팀)</span>
               <Play size={24} />
             </button>
           </div>

@@ -10,6 +10,7 @@ import WordChainPlayer from '../games/WordChainPlayer';
 import WordBingoPlayer from '../games/WordBingoPlayer';
 import BombGamePlayer from '../games/BombGamePlayer';
 import SpellingHunterPlayer from '../games/SpellingHunterPlayer';
+import SpeedRacePlayer from '../games/SpeedRacePlayer';
 
 function PlayerScreen() {
   const [searchParams] = useSearchParams();
@@ -118,6 +119,7 @@ function PlayerScreen() {
       {gameState === 'wordBingo' && <WordBingoPlayer pin={pin} nickname={nickname} />}
       {gameState === 'categoryBomb' && <BombGamePlayer pin={pin} nickname={nickname} />}
       {gameState === 'spellingHunter' && <SpellingHunterPlayer pin={pin} nickname={nickname} />}
+      {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && <SpeedRacePlayer pin={pin} nickname={nickname} />}
     </div>
   );
 }

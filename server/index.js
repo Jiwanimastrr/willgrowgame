@@ -150,6 +150,14 @@ io.on('connection', (socket) => {
       else if (gameMode === 'spellingHunter') {
         startSpellingHunter(pin, room);
       }
+      // 7번 게임: 스피드 레이스 (개인전)
+      else if (gameMode === 'speedRaceIndividual') {
+        startSpeedRace(pin, room, 'individual');
+      }
+      // 8번 게임: 스피드 레이스 (팀전)
+      else if (gameMode === 'speedRaceTeam') {
+        startSpeedRace(pin, room, 'team');
+      }
     }
   });
 
@@ -531,6 +539,138 @@ io.on('connection', (socket) => {
         }
         broadcastChainState(pin, room);
         startChainTimer(pin, room);
+      }
+    }
+  });
+
+  // ==== 7, 8. 스피드 레이스 (개인전 / 팀전) ====
+  function startSpeedRace(pin, room, type) {
+    if (room.raceTimer) clearInterval(room.raceTimer);
+
+    room.raceGame = {
+      type: type, // 'individual' or 'team'
+      timeRemaining: 60, // 60초 타임어택
+      isActive: true,
+      teams: {}, // 팀전용 점수풀
+    };
+
+    if (type === 'team') {
+      const teamNames = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+      // 인원수에 따라 최소 2팀 배정
+      const numTeams = Math.max(2, Math.min(4, Math.ceil(room.players.length / 2)));
+      const activeTeams = teamNames.slice(0, numTeams);
+      activeTeams.forEach(t => room.raceGame.teams[t] = 0);
+
+      // 플레이어 셔플 후 팀 배당
+      const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
+      shuffledPlayers.forEach((p, idx) => {
+        p.score = 0;
+        p.team = activeTeams[idx % numTeams];
+        p.currentRaceAnswer = null;
+      });
+    } else {
+      room.players.forEach(p => {
+        p.score = 0;
+        p.currentRaceAnswer = null;
+      });
+    }
+
+    io.to(pin).emit('playersUpdated', room.players);
+    io.to(pin).emit('raceState', {
+      type: room.raceGame.type,
+      timeRemaining: room.raceGame.timeRemaining,
+      isActive: room.raceGame.isActive,
+      teams: room.raceGame.teams,
+      playersInfo: room.players
+    });
+
+    // 각자에게 독립적인 첫 문제 전송
+    room.players.forEach(p => {
+      emitRaceQuestion(pin, p.id);
+    });
+
+    room.raceTimer = setInterval(() => {
+      if (!room || !room.raceGame || !room.raceGame.isActive) {
+        clearInterval(room.raceTimer);
+        return;
+      }
+      room.raceGame.timeRemaining -= 1;
+      
+      if (room.raceGame.timeRemaining <= 0) {
+        room.raceGame.isActive = false;
+        clearInterval(room.raceTimer);
+        
+        let winner = null;
+        if (room.raceGame.type === 'team') {
+          const entries = Object.entries(room.raceGame.teams);
+          entries.sort((a,b) => b[1] - a[1]);
+          if(entries.length > 0) winner = entries[0][0] + " TEAM";
+        } else {
+          const sorted = [...room.players].sort((a,b) => b.score - a.score);
+          if (sorted.length > 0) winner = sorted[0].nickname;
+        }
+
+        io.to(pin).emit('raceGameOver', { winner: winner || 'Nobody' });
+        io.to(pin).emit('raceState', {
+           ...room.raceGame,
+           timeRemaining: 0,
+           isActive: false,
+           playersInfo: room.players
+        });
+        io.to(pin).emit('playersUpdated', room.players);
+      } else {
+        // 타이머 및 상태 갱신
+        if (room.raceGame.timeRemaining % 2 === 0 || room.raceGame.timeRemaining <= 5) {
+          io.to(pin).emit('raceState', {
+             ...room.raceGame,
+             playersInfo: room.players
+          });
+        }
+      }
+    }, 1000);
+  }
+
+  function emitRaceQuestion(pin, playerId) {
+    const room = rooms[pin];
+    if (room && (room.gameState === 'speedRaceIndividual' || room.gameState === 'speedRaceTeam') && room.raceGame && room.raceGame.isActive) {
+      const question = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
+      const incorrectOptions = wordQuizDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
+      
+      const player = room.players.find(p => p.id === playerId);
+      if (player) {
+         player.currentRaceAnswer = question.answer;
+         io.to(playerId).emit('raceNewQuestion', { meaning: question.meaning, options });
+      }
+    }
+  }
+
+  socket.on('submitRaceAnswer', ({ pin, answer }) => {
+    const room = rooms[pin];
+    if (room && (room.gameState === 'speedRaceIndividual' || room.gameState === 'speedRaceTeam') && room.raceGame && room.raceGame.isActive) {
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        if (answer === player.currentRaceAnswer) {
+          player.score += 1;
+          if (room.raceGame.type === 'team') room.raceGame.teams[player.team] += 1;
+          io.to(socket.id).emit('raceCorrectAnswer');
+        } else {
+          // 오답 시 점수 깎기 (최소 0점)
+          player.score = Math.max(0, player.score - 1);
+          if (room.raceGame.type === 'team') {
+            room.raceGame.teams[player.team] = Math.max(0, room.raceGame.teams[player.team] - 1);
+          }
+          io.to(socket.id).emit('raceWrongAnswer');
+        }
+        
+        emitRaceQuestion(pin, socket.id);
+        
+        // 제출 즉시 상태 동기화
+        io.to(pin).emit('raceState', {
+           ...room.raceGame,
+           playersInfo: room.players
+        });
+        io.to(pin).emit('playersUpdated', room.players);
       }
     }
   });
