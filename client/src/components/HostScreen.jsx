@@ -317,20 +317,20 @@ function HostScreen() {
            </div>
 
            {/* Right Content: QR Code & Players */}
-           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', zIndex: 10, paddingRight: '5rem' }}>
-              <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', minWidth: '400px' }}>
+           <div style={{ position: 'absolute', right: '5rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', zIndex: 10 }}>
+              <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', minWidth: '350px' }}>
                   <h1 className="display-lg" style={{ color: 'var(--ow-secondary)', fontSize: '3.5rem', marginBottom: '2rem', textShadow: '0 0 20px var(--ow-secondary)' }}>PIN: {pin}</h1>
-                  <div style={{ padding: '20px', background: 'white', borderRadius: '20px', display: 'inline-block', boxShadow: '0 20px 50px rgba(0,0,0,0.4)', transform: 'scale(1.1)' }}>
-                     <QRCodeSVG value={joinUrl} size={280} />
+                  <div style={{ padding: '15px', background: 'white', borderRadius: '20px', display: 'inline-block', boxShadow: '0 20px 50px rgba(0,0,0,0.4)', transform: 'scale(1.1)' }}>
+                     <QRCodeSVG value={joinUrl} size={250} />
                   </div>
-                  <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.8rem', marginTop: '2.5rem', letterSpacing: '2px' }}>{joinUrl}</h3>
+                  <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.5rem', marginTop: '2.5rem', letterSpacing: '2px' }}>{joinUrl}</h3>
               </div>
 
-              <div style={{ marginTop: '3rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '50px' }}>
+              <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '50px' }}>
                  <Users size={32} color="var(--ow-primary)" />
                  <span className="headline-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem' }}>{players.length} PLAYERS</span>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '600px', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '400px', marginTop: '1.5rem' }}>
                  {players.map((p, idx) => (
                     <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.5rem' }}>{p.nickname}</span>
                  ))}
@@ -351,11 +351,6 @@ function HostScreen() {
                 </span>
               )) : (
                 <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>0 PLAYERS</span>
-              )}
-              {gameState !== 'lobby' && (
-                <div style={{ marginLeft: '2rem', background: 'white', padding: '5px', borderRadius: '10px' }}>
-                  <QRCodeSVG value={joinUrl} size={60} />
-                </div>
               )}
             </div>
           </header>
