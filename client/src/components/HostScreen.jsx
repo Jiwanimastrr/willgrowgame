@@ -304,7 +304,7 @@ function HostScreen() {
                  </>
                )}
 
-               {/* 1. Word Quiz */}
+                {/* 1. Word Quiz */}
                {gameState === 'wordQuiz' && quizData ? (
                  <>
                    <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem' }}>WHAT IS THIS WORD?</h3>
@@ -323,6 +323,16 @@ function HostScreen() {
                    ) : (
                      <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR ANSWERS...</div>
                    )}
+
+                   <h2 className="headline-lg" style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--on-surface)' }}>LEADERBOARD</h2>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '80%' }}>
+                     {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => (
+                       <div key={idx} className="surface-card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem' }}>
+                         <span className="headline-lg">{idx + 1}. {p.nickname}</span>
+                         <span className="headline-lg" style={{ color: 'var(--ow-primary-dim)' }}>{p.score} PT</span>
+                       </div>
+                     ))}
+                   </div>
                  </>
                ) : null}
 

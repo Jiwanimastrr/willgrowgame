@@ -169,6 +169,8 @@ io.on('connection', (socket) => {
 
       // 1번 게임: 단어 퀴즈
       if (gameMode === 'wordQuiz') {
+        room.players.forEach(p => p.score = 0);
+        io.to(pin).emit('playersUpdated', room.players);
         setTimeout(() => emitNextWordQuiz(pin, room), 1000);
       }
       // 2번 게임: 문장 퍼즐
@@ -233,16 +235,13 @@ io.on('connection', (socket) => {
 
     const question = sourceDB[Math.floor(Math.random() * sourceDB.length)];
     room.currentQuestion = question;
-    // 오답 보기 3개 + 정답 1개 섞기
-    const incorrectOptions = sourceDB.filter(q => q.id !== question.id && q.answer !== question.answer).sort(() => 0.5 - Math.random()).slice(0, 3);
-    const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
 
     // Host에게는 정답 & 메인 문제 전송
     io.to(room.host).emit('hostNewQuestion', { meaning: question.meaning, answer: question.answer });
     
-    // Player들에게는 보기만 전송
+    // Player들에게는 주관식 출제 알림 전송
     room.players.forEach(p => {
-      io.to(p.id).emit('playerNewQuestion', { options });
+      io.to(p.id).emit('playerNewQuestion', { type: 'typing' });
     });
   }
 
@@ -530,7 +529,7 @@ io.on('connection', (socket) => {
   socket.on('submitWordQuiz', ({ pin, answer }) => {
     const room = rooms[pin];
     if (room && room.gameState === 'wordQuiz' && room.currentQuestion) {
-      if (answer === room.currentQuestion.answer) {
+      if (answer.trim().toLowerCase() === room.currentQuestion.answer.trim().toLowerCase()) {
         // 정답을 맞힌 플레이어 점수 증가
         const player = room.players.find(p => p.id === socket.id);
         if (player) {
