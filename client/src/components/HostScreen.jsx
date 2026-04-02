@@ -627,13 +627,7 @@ function HostScreen() {
             GAME MODES
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
-               if (customVocabCount >= 4) {
-                 startGame('wordQuiz');
-               } else {
-                 socket.emit('startCategoryVote', { pin, options: ['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간'] });
-               }
-            }}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
               <span>Word Quiz</span> <Play size={20} />
             </button>
             <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
