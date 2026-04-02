@@ -33,9 +33,9 @@ function HostScreen() {
   const [showSpellChainOptions, setShowSpellChainOptions] = useState(false);
   const [showSpellingHunterOptions, setShowSpellingHunterOptions] = useState(false);
   const [showWordQuizOptions, setShowWordQuizOptions] = useState(false);
-  const [wordQuizWinningScore, setWordQuizWinningScore] = useState(100);
   const [showSpeedRaceSoloOptions, setShowSpeedRaceSoloOptions] = useState(false);
   const [showSpeedRaceTeamOptions, setShowSpeedRaceTeamOptions] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [lobbyStep, setLobbyStep] = useState('waiting');
 
   const [heroOpacity, setHeroOpacity] = useState(1);

@@ -675,9 +675,11 @@ io.on('connection', (socket) => {
             const nextQ = room.sentenceRace.sentences[nextIndex];
             const tokens = nextQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
             const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
-            io.to(pId).emit('playerNewPuzzle', { tokens: shuffledTokens, index: nextIndex, total: 20 });
             io.to(pId).emit('sentenceRaceCorrect');
             io.to(pin).emit('playersUpdated', room.players); // 리더보드용 실시간 점수갱신
+            setTimeout(() => {
+              io.to(pId).emit('playerNewPuzzle', { tokens: shuffledTokens, index: nextIndex, total: 20 });
+            }, 500);
           }
         }
       } else {
