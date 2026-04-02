@@ -284,9 +284,9 @@ function HostScreen() {
              </button>
            </div>
 
-           {/* Center Content: QR Code & Players */}
-           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, paddingRight: '200px' }}>
-              <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+           {/* Right Content: QR Code & Players */}
+           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', zIndex: 10, paddingRight: '5rem' }}>
+              <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', minWidth: '400px' }}>
                   <h1 className="display-lg" style={{ color: 'var(--ow-secondary)', fontSize: '3.5rem', marginBottom: '2rem', textShadow: '0 0 20px var(--ow-secondary)' }}>PIN: {pin}</h1>
                   <div style={{ padding: '20px', background: 'white', borderRadius: '20px', display: 'inline-block', boxShadow: '0 20px 50px rgba(0,0,0,0.4)', transform: 'scale(1.1)' }}>
                      <QRCodeSVG value={joinUrl} size={280} />
@@ -298,7 +298,7 @@ function HostScreen() {
                  <Users size={32} color="var(--ow-primary)" />
                  <span className="headline-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem' }}>{players.length} PLAYERS</span>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '800px', marginTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '600px', marginTop: '1.5rem' }}>
                  {players.map((p, idx) => (
                     <span key={idx} className="glassliquid-badge" style={{ padding: '0.8rem 1.5rem', fontSize: '1.5rem', background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}>{p.nickname}</span>
                  ))}
