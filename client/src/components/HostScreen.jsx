@@ -30,6 +30,7 @@ function HostScreen() {
   const [showVocabModal, setShowVocabModal] = useState(false);
   const [vocabInput, setVocabInput] = useState('');
   const [customVocabCount, setCustomVocabCount] = useState(0);
+  const [showWordQuizOptions, setShowWordQuizOptions] = useState(false);
 
   const bgmRef = useRef(null);
 
@@ -146,12 +147,12 @@ function HostScreen() {
     };
   }, []);
 
-  const startGame = (gameMode) => {
+  const startGame = (gameMode, category = null) => {
     if (players.length === 0) {
       alert('참여자가 1명 이상 필요합니다.');
       return;
     }
-    socket.emit('startGame', { pin, gameMode });
+    socket.emit('startGame', { pin, gameMode, category });
   };
 
   const handleVocabSubmit = () => {
@@ -696,9 +697,23 @@ function HostScreen() {
             GAME MODES
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
-              <span>Word Quiz</span> <Play size={20} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => setShowWordQuizOptions(p => !p)}>
+                <span>Word Quiz</span> <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '1rem', opacity: 0.7 }}>카테고리 선택 ▼</span> <Play size={20} /></div>
+              </button>
+              {showWordQuizOptions && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid var(--ow-primary)' }}>
+                  <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', 'All')}>🎲 무작위 전체</button>
+                  {customVocabCount > 0 && (
+                    <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start', '--ow-primary': '#48cfae' }} onClick={() => startGame('wordQuiz', 'Custom')}>⭐ 커스텀 단어장 (적용됨)</button>
+                  )}
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '동물 & 자연')}>🦁 동물 & 자연</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '음식 & 과일')}>🍔 음식 & 과일</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '사물 & 장소')}>🏫 사물 & 장소</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '직업 & 인간')}>👨‍⚕️ 직업 & 인간</button>
+                </div>
+              )}
+            </div>
             <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
               <span>Sentence Race</span> <Play size={20} />
             </button>

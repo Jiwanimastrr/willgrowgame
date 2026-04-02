@@ -160,12 +160,15 @@ io.on('connection', (socket) => {
   });
 
   // 3. 게임 시작 (Host)
-  socket.on('startGame', ({ pin, gameMode }) => {
+  socket.on('startGame', ({ pin, gameMode, category }) => {
     const room = rooms[pin];
     if (room && room.host === socket.id) {
       room.gameState = gameMode;
+      if (category) {
+        room.quizCategory = category === 'All' ? null : category;
+      }
       io.to(pin).emit('gameStarted', { gameMode });
-      console.log(`🎮 Game ${gameMode} started in room ${pin}`);
+      console.log(`🎮 Game ${gameMode} started in room ${pin} (Cat: ${category})`);
 
       // 1번 게임: 단어 퀴즈
       if (gameMode === 'wordQuiz') {
@@ -221,11 +224,11 @@ io.on('connection', (socket) => {
 
   function emitNextWordQuiz(pin, room) {
     let sourceDB = wordQuizDB;
-    // 커스텀 DB 우선 사용, 없으면 투표된 카테고리로 필터링
-    if (room.customWordDB && room.customWordDB.length >= 4) {
-       sourceDB = room.customWordDB;
-    } else if (room.quizCategory) {
-       sourceDB = wordQuizDB.filter(w => w.category === room.quizCategory);
+    
+    if (room.quizCategory === 'Custom' && room.customWordDB && room.customWordDB.length >= 4) {
+      sourceDB = room.customWordDB;
+    } else if (room.quizCategory && room.quizCategory !== 'All' && room.quizCategory !== 'Custom') {
+      sourceDB = wordQuizDB.filter(w => w.category === room.quizCategory);
     }
     
     // 만약 타겟 데이터베이스가 너무 적을 경우 폴백(fallback)
