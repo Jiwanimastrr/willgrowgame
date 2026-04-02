@@ -324,14 +324,73 @@ function HostScreen() {
                      <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR ANSWERS...</div>
                    )}
 
-                   <h2 className="headline-lg" style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--on-surface)' }}>LEADERBOARD</h2>
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '80%' }}>
-                     {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => (
-                       <div key={idx} className="surface-card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem' }}>
-                         <span className="headline-lg">{idx + 1}. {p.nickname}</span>
-                         <span className="headline-lg" style={{ color: 'var(--ow-primary-dim)' }}>{p.score} PT</span>
-                       </div>
-                     ))}
+                   <h2 className="headline-lg" style={{ marginTop: '3rem', marginBottom: '1.5rem', color: 'var(--ow-primary)', textShadow: '0 0 15px rgba(204,151,255,0.6)' }}>
+                     🔥 REAL-TIME LEADERBOARD 🔥
+                   </h2>
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem', width: '90%' }}>
+                     {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => {
+                       const maxScore = Math.max(50, Math.max(...players.map(p => p.score)));
+                       const percent = Math.min(100, (p.score / maxScore) * 100);
+                       const isFirst = idx === 0;
+                       const rankColors = ['#ffd700', '#c0c0c0', '#cd7f32', 'var(--ow-secondary)', 'var(--ow-secondary)']; // 1,2,3등 및 나머지
+                       const rankColor = rankColors[idx] || 'var(--ow-secondary)';
+                       
+                       return (
+                         <div key={idx} className="surface-card" style={{ 
+                           display: 'flex', alignItems: 'center', padding: '1rem 1.5rem',
+                           borderColor: isFirst ? 'var(--ow-primary)' : 'rgba(64,72,93,0.5)',
+                           boxShadow: isFirst ? '0 0 20px rgba(204,151,255,0.4) inset, 0 0 10px rgba(204,151,255,0.2)' : 'none',
+                           position: 'relative', overflow: 'hidden'
+                         }}>
+                           {/* 배경 채우기 효과 (오버워치 궁극기 게이지 같은 느낌) */}
+                           <div style={{
+                             position: 'absolute', top: 0, left: 0, height: '100%',
+                             width: `${percent}%`,
+                             background: `linear-gradient(90deg, rgba(0,0,0,0) 0%, ${rankColor}33 100%)`, 
+                             transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                             zIndex: 0
+                           }} />
+
+                           <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', width: '100%' }}>
+                             {/* 등수 뱃지 */}
+                             <div className="display-lg" style={{ 
+                               color: rankColor, width: '60px', textAlign: 'center', fontSize: isFirst ? '2.5rem' : '2rem',
+                               textShadow: `0 0 15px ${rankColor}88`
+                             }}>
+                               #{idx + 1}
+                             </div>
+
+                             {/* 닉네임 */}
+                             <span className="headline-lg" style={{ 
+                               width: '200px', marginLeft: '1rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap',
+                               color: isFirst ? 'var(--on-surface)' : 'var(--on-surface-variant)'
+                             }}>
+                               {p.nickname}
+                             </span>
+
+                             {/* 프로그레스 바 */}
+                             <div style={{ 
+                               flex: 1, background: 'rgba(0,0,0,0.6)', height: '12px', margin: '0 2rem', 
+                               borderRadius: '6px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)'
+                             }}>
+                               <div style={{ 
+                                 width: `${percent}%`, background: rankColor, height: '100%', 
+                                 transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)', 
+                                 boxShadow: `0 0 12px ${rankColor}` 
+                               }} />
+                             </div>
+
+                             {/* 점수 */}
+                             <div className="display-lg" style={{ 
+                               width: '100px', textAlign: 'right', color: rankColor,
+                               textShadow: `0 0 10px ${rankColor}`
+                             }}>
+                               {p.score} PT
+                             </div>
+                           </div>
+                         </div>
+                       );
+                     })}
                    </div>
                  </>
                ) : null}
