@@ -198,11 +198,17 @@ io.on('connection', (socket) => {
       }
       // 7번 게임: 스피드 레이스 (개인전)
       else if (gameMode === 'speedRaceIndividual') {
-        setTimeout(() => startSpeedRace(pin, room, 'individual'), 1000);
+        console.log(`🏁 Starting Speed Race Individual in room ${pin} with ${room.players.length} players`);
+        setTimeout(() => {
+          if (rooms[pin]) startSpeedRace(pin, rooms[pin], 'individual');
+        }, 1500);
       }
       // 8번 게임: 스피드 레이스 (팀전)
       else if (gameMode === 'speedRaceTeam') {
-        setTimeout(() => startSpeedRace(pin, room, 'team'), 1000);
+        console.log(`🏁 Starting Speed Race Team in room ${pin} with ${room.players.length} players`);
+        setTimeout(() => {
+          if (rooms[pin]) startSpeedRace(pin, rooms[pin], 'team');
+        }, 1500);
       }
       // 9번 게임: 불규칙동사 스피드게임 (타이핑)
 
@@ -766,6 +772,10 @@ io.on('connection', (socket) => {
   // ==== 7, 8. 스피드 레이스 (개인전 / 팀전) ====
 
   function startSpeedRace(pin, room, type) {
+    if (!room || !room.players || room.players.length === 0) {
+      console.log(`❌ Cannot start Speed Race: room or players missing`);
+      return;
+    }
     if (room.raceTimer) clearInterval(room.raceTimer);
 
     room.raceGame = {
@@ -777,12 +787,10 @@ io.on('connection', (socket) => {
 
     if (type === 'team') {
       const teamNames = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
-      // 인원수에 따라 최소 2팀 배정
       const numTeams = Math.max(2, Math.min(4, Math.ceil(room.players.length / 2)));
       const activeTeams = teamNames.slice(0, numTeams);
       activeTeams.forEach(t => room.raceGame.teams[t] = 0);
 
-      // 플레이어 셔플 후 팀 배당
       const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
       shuffledPlayers.forEach((p, idx) => {
         p.score = 0;
@@ -796,6 +804,8 @@ io.on('connection', (socket) => {
       });
     }
 
+    console.log(`🏁 Speed Race ${type} initialized for ${room.players.length} players`);
+
     io.to(pin).emit('playersUpdated', room.players);
     io.to(pin).emit('raceState', {
       type: room.raceGame.type,
@@ -805,10 +815,13 @@ io.on('connection', (socket) => {
       playersInfo: room.players
     });
 
-    // 각자에게 독립적인 첫 문제 전송
-    room.players.forEach(p => {
-      emitRaceQuestion(pin, p.id);
-    });
+    // 각자에게 독립적인 첫 문제 전송 (약간의 딜레이)
+    setTimeout(() => {
+      room.players.forEach(p => {
+        console.log(`📤 Sending first question to ${p.nickname} (${p.id})`);
+        emitRaceQuestion(pin, p.id);
+      });
+    }, 500);
 
     room.raceTimer = setInterval(() => {
       if (!room || !room.raceGame || !room.raceGame.isActive) {
@@ -853,35 +866,39 @@ io.on('connection', (socket) => {
 
   function emitRaceQuestion(pin, playerId) {
     const room = rooms[pin];
-    if (room && (room.gameState === 'speedRaceIndividual' || room.gameState === 'speedRaceTeam') && room.raceGame && room.raceGame.isActive) {
+    if (!room) return;
+    if ((room.gameState !== 'speedRaceIndividual' && room.gameState !== 'speedRaceTeam') || !room.raceGame || !room.raceGame.isActive) return;
       
-      let filteredDB = wordQuizDB;
-      if (room.quizCategory === 'Custom' && room.customWordDB && room.customWordDB.length >= 4) {
-        filteredDB = room.customWordDB;
-      } else if (room.quizCategory && room.quizCategory !== 'All Random' && room.quizCategory !== 'All') {
-        filteredDB = wordQuizDB.filter(q => q.category === room.quizCategory);
-      }
+    let filteredDB = wordQuizDB;
+    if (room.quizCategory === 'Custom' && room.customWordDB && room.customWordDB.length >= 4) {
+      filteredDB = room.customWordDB;
+    } else if (room.quizCategory && room.quizCategory !== 'All Random' && room.quizCategory !== 'All') {
+      const catDB = wordQuizDB.filter(q => q.category === room.quizCategory);
+      if (catDB.length >= 4) filteredDB = catDB;
+    }
       
-      if (!filteredDB || filteredDB.length === 0) filteredDB = wordQuizDB;
+    if (!filteredDB || filteredDB.length < 4) filteredDB = wordQuizDB;
 
-      const question = filteredDB[Math.floor(Math.random() * filteredDB.length)];
-      const incorrectOptions = filteredDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+    const question = filteredDB[Math.floor(Math.random() * filteredDB.length)];
+    const incorrectOptions = filteredDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
       
-      // 만약 같은 카테고리에 오답 선택지가 3개 미만이면 전체 DB에서 보충
-      while (incorrectOptions.length < 3) {
-        const extraQuestion = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
-        if (extraQuestion.id !== question.id && !incorrectOptions.find(q => q.id === extraQuestion.id)) {
-          incorrectOptions.push(extraQuestion);
-        }
+    let safetyCounter = 0;
+    while (incorrectOptions.length < 3 && safetyCounter < 20) {
+      safetyCounter++;
+      const extraQuestion = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
+      if (extraQuestion.id !== question.id && !incorrectOptions.find(q => q.id === extraQuestion.id)) {
+        incorrectOptions.push(extraQuestion);
       }
+    }
 
-      const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
+    const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
       
-      const player = room.players.find(p => p.id === playerId);
-      if (player) {
-         player.currentRaceAnswer = question.answer;
-         io.to(playerId).emit('raceNewQuestion', { meaning: question.meaning, options });
-      }
+    const player = room.players.find(p => p.id === playerId);
+    if (player) {
+       player.currentRaceAnswer = question.answer;
+       io.to(playerId).emit('raceNewQuestion', { meaning: question.meaning, options });
+    } else {
+       console.log(`⚠️ emitRaceQuestion: player ${playerId} not found in room ${pin}`);
     }
   }
 

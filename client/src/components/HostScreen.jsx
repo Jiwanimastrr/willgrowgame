@@ -315,17 +315,9 @@ function HostScreen() {
              </button>
            </div>
 
-           {/* Right Content: QR Code & Players */}
+           {/* Right Content: Players Only (QR via floating button) */}
            <div style={{ position: 'absolute', right: '5rem', top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', zIndex: 10 }}>
-              <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', minWidth: '350px' }}>
-                  <h1 className="display-lg" style={{ color: 'var(--ow-secondary)', fontSize: '3.5rem', marginBottom: '2rem', textShadow: '0 0 20px var(--ow-secondary)' }}>PIN: {pin}</h1>
-                  <div style={{ padding: '15px', background: 'white', borderRadius: '20px', display: 'inline-block', boxShadow: '0 20px 50px rgba(0,0,0,0.4)', transform: 'scale(1.1)' }}>
-                     <QRCodeSVG value={joinUrl} size={250} />
-                  </div>
-                  <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.5rem', marginTop: '2.5rem', letterSpacing: '2px' }}>{joinUrl}</h3>
-              </div>
-
-              <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '50px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '50px' }}>
                  <Users size={32} color="var(--ow-primary)" />
                  <span className="headline-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem' }}>{players.length} PLAYERS</span>
               </div>
@@ -957,6 +949,83 @@ function HostScreen() {
           </div>
         </div>
       )}
+
+      {/* Floating QR Button (always visible) */}
+      <button 
+        onClick={() => setShowQRModal(true)}
+        style={{ 
+          position: 'fixed', bottom: '2.5rem', right: '2.5rem', zIndex: 9900, 
+          padding: '1.2rem 2.5rem', fontSize: '1.8rem', fontFamily: 'var(--font-header)',
+          fontWeight: 900, fontStyle: 'italic', textTransform: 'uppercase',
+          background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '50px',
+          color: '#fff', cursor: 'pointer', letterSpacing: '2px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3), 0 0 20px rgba(204,151,255,0.3)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15)'; }}
+      >
+        📱 QR CODE
+      </button>
+
+      {/* QR Code Liquid Glass Modal */}
+      {showQRModal && (
+        <div 
+          onClick={() => setShowQRModal(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10000, background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              textAlign: 'center', padding: '3.5rem 4rem',
+              background: 'rgba(255, 255, 255, 0.06)',
+              backdropFilter: 'blur(24px) saturate(200%)',
+              WebkitBackdropFilter: 'blur(24px) saturate(200%)',
+              border: '1.5px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '32px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.05)',
+              animation: 'genieEffect 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+              transformOrigin: 'bottom right',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem',
+              minWidth: '420px'
+            }}
+          >
+            <h1 className="display-lg" style={{ color: 'var(--ow-secondary)', fontSize: '4rem', margin: 0, textShadow: '0 0 25px var(--ow-secondary)' }}>
+              PIN: {pin}
+            </h1>
+            <div style={{ padding: '20px', background: 'white', borderRadius: '24px', display: 'inline-block', boxShadow: '0 15px 40px rgba(0,0,0,0.4)' }}>
+              <QRCodeSVG value={joinUrl} size={280} />
+            </div>
+            <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.6rem', margin: 0, letterSpacing: '2px', opacity: 0.8 }}>
+              {joinUrl}
+            </h3>
+            <button 
+              onClick={() => setShowQRModal(false)}
+              style={{
+                marginTop: '0.5rem', padding: '0.8rem 3rem', fontSize: '1.3rem',
+                fontFamily: 'var(--font-header)', fontStyle: 'italic', fontWeight: 800,
+                background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: '50px', color: '#fff', cursor: 'pointer',
+                backdropFilter: 'blur(10px)', transition: 'all 0.2s',
+                letterSpacing: '2px', textTransform: 'uppercase'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ow-primary)'; e.currentTarget.style.color = '#000'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
+            >
+              CLOSE
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
