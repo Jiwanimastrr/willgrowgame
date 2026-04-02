@@ -11,6 +11,7 @@ import WordBingoPlayer from '../games/WordBingoPlayer';
 import BombGamePlayer from '../games/BombGamePlayer';
 import SpellingHunterPlayer from '../games/SpellingHunterPlayer';
 import SpeedRacePlayer from '../games/SpeedRacePlayer';
+import IrregularVerbPlayer from '../games/IrregularVerbPlayer';
 
 function PlayerScreen() {
   const [searchParams] = useSearchParams();
@@ -20,12 +21,21 @@ function PlayerScreen() {
   const [nickname, setNickname] = useState('');
   const [joined, setJoined] = useState(false);
   const [gameState, setGameState] = useState('lobby');
+  
+  const [voteOptions, setVoteOptions] = useState([]);
+  const [myVote, setMyVote] = useState(null);
 
   useEffect(() => {
     socket.connect();
 
     socket.on('gameStarted', ({ gameMode }) => {
       setGameState(gameMode);
+    });
+
+    socket.on('categoryVoteStarted', ({ options }) => {
+      setGameState('categoryVote');
+      setVoteOptions(options);
+      setMyVote(null);
     });
 
     socket.on('hostDisconnected', () => {
@@ -122,6 +132,35 @@ function PlayerScreen() {
          </div>
       )}
 
+      {/* Category Vote State */}
+      {gameState === 'categoryVote' && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '2rem', width: '100%', boxSizing: 'border-box' }}>
+          <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', textShadow: '0 0 10px currentColor', marginBottom: '3rem', textAlign: 'center' }}>
+            투표할 주제를 선택하세요!
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '400px' }}>
+            {voteOptions.map(opt => (
+              <button 
+                key={opt}
+                className={myVote === opt ? 'ow-btn' : 'ow-btn-secondary'}
+                style={{ height: '80px', fontSize: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                onClick={() => {
+                  setMyVote(opt);
+                  socket.emit('submitCategoryVote', { pin, nickname, vote: opt });
+                }}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {myVote && (
+            <p className="body-md" style={{ color: 'var(--ow-secondary)', marginTop: '2rem', fontSize: '1.2rem', textAlign: 'center' }}>
+              선택 완료! 칠판 화면을 봐주세요.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* 게임 모드 라우팅 컴포넌트 렌더링 */}
       {gameState === 'wordQuiz' && <WordQuizPlayer pin={pin} nickname={nickname} />}
       {gameState === 'sentencePuzzle' && <SentencePuzzlePlayer pin={pin} nickname={nickname} />}
@@ -130,6 +169,7 @@ function PlayerScreen() {
       {gameState === 'categoryBomb' && <BombGamePlayer pin={pin} nickname={nickname} />}
       {gameState === 'spellingHunter' && <SpellingHunterPlayer pin={pin} nickname={nickname} />}
       {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && <SpeedRacePlayer pin={pin} nickname={nickname} />}
+      {gameState === 'irregularVerbRace' && <IrregularVerbPlayer pin={pin} nickname={nickname} />}
     </div>
   );
 }

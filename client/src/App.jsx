@@ -18,27 +18,41 @@ function Home() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '2rem' }} className="animate-enter">
-      {/* 윌그로우 로고 (로고 파일이 업로드되면 이 img 태그가 활성화됨) */}
-      <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" onError={(e) => {
-        e.target.style.display = 'none';
-        e.target.nextSibling.style.display = 'block';
-      }} />
-      <div className="logo-placeholder" style={{ display: 'none' }}>
-        WILLGROW
-      </div>
+    <div className="ow-container" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       
-      <h1 className="display-lg" style={{ color: 'var(--on-surface)', textShadow: '0 4px 10px rgba(0,0,0,0.5)', marginBottom: '1rem', textAlign: 'center' }}>
-        Language Event Platform
-      </h1>
-      <div style={{ display: 'flex', gap: '1.5rem' }}>
-        <button className="ow-btn-secondary" onClick={() => navigate('/host')}>
-          <span>Create Room (Host)</span>
-        </button>
-        <button className="ow-btn" onClick={() => navigate('/player')}>
-          <span>Join Game (Player)</span>
-        </button>
+      <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+        <img src="/willgrow_logo.png" alt="WillGrow Logo" style={{ height: '80px', marginBottom: '1rem' }} onError={(e) => {
+          e.target.style.display = 'none';
+          e.target.nextSibling.style.display = 'block';
+        }} />
+        <div className="logo-placeholder ow-subtitle" style={{ display: 'none', fontSize: '2.5rem', marginBottom: '1rem' }}>
+          WILLGROW
+        </div>
+        
+        <h1 className="ow-title" style={{ fontSize: 'clamp(3rem, 8vw, 5rem)', marginBottom: '0.5rem' }}>
+          Language Event
+        </h1>
+        <div className="ow-subtitle" style={{ fontSize: '1.2rem', color: 'var(--ow-text-muted)' }}>
+          Interactive Classroom Platform
+        </div>
       </div>
+
+      <div className="ow-panel" style={{ width: '100%', maxWidth: '650px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', padding: '3rem 2rem', marginTop: '2rem' }}>
+        <h2 style={{ color: 'var(--ow-text-main)', margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+          Select Your Role
+        </h2>
+        
+        <div style={{ display: 'flex', gap: '1.5rem', width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button className="ow-btn-secondary" style={{ flex: '1 1 220px', padding: '1.2rem 0', textAlign: 'center' }} onClick={() => navigate('/host')}>
+            <span>Create Room (Host)</span>
+          </button>
+          
+          <button className="ow-btn" style={{ flex: '1 1 220px', padding: '1.2rem 0', textAlign: 'center' }} onClick={() => navigate('/player')}>
+            <span>Join Game (Player)</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 }

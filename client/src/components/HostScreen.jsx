@@ -24,6 +24,9 @@ function HostScreen() {
   const [raceData, setRaceData] = useState(null);
   const [raceWinner, setRaceWinner] = useState(null);
 
+  const [categoryVoteTally, setCategoryVoteTally] = useState({});
+
+
   const [showVocabModal, setShowVocabModal] = useState(false);
   const [vocabInput, setVocabInput] = useState('');
   const [customVocabCount, setCustomVocabCount] = useState(0);
@@ -110,6 +113,16 @@ function HostScreen() {
     });
     socket.on('raceGameOver', ({ winner }) => setRaceWinner(winner));
 
+    socket.on('verbState', (data) => {
+      setVerbData(data);
+      setVerbWinner(null);
+    });
+    socket.on('verbGameOver', ({ winner }) => setVerbWinner(winner));
+
+    socket.on('categoryVoteUpdate', ({ tally }) => {
+      setCategoryVoteTally(tally);
+    });
+
     return () => {
       socket.off('playersUpdated');
       socket.off('gameStarted');
@@ -128,6 +141,7 @@ function HostScreen() {
       socket.off('hunterState');
       socket.off('raceState');
       socket.off('raceGameOver');
+      socket.off('categoryVoteUpdate');
       socket.disconnect();
     };
   }, []);
@@ -213,7 +227,7 @@ function HostScreen() {
                 SCAN TO JOIN!
               </h2>
               <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '2rem', marginBottom: '3rem' }}>
-                또는 스마트폰으로 <span style={{ color: 'var(--ow-primary)', textDecoration: 'underline' }}>{window.location.host}/player</span> 에 접속하세요
+                스마트폰 카메라로 화면의 QR 코드를 스캔하세요!
               </h3>
               
               <div style={{ display: 'flex', gap: '5rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -250,6 +264,46 @@ function HostScreen() {
           ) : (
              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
                
+               {/* 0. Category Vote */}
+               {gameState === 'categoryVote' && (
+                 <>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
+                     VOTING: WORD QUIZ CATEGORY
+                   </h3>
+                   <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '600px', marginTop: '3rem', gap: '1.5rem' }}>
+                     {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간'].map(cat => {
+                       const votes = categoryVoteTally[cat] || 0;
+                       const totalVotes = Math.max(1, Object.values(categoryVoteTally).reduce((a,b)=>a+b, 0));
+                       const percent = (votes / totalVotes) * 100;
+                       return (
+                         <div key={cat} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem' }}>
+                           <span className="headline-lg" style={{ width: '150px' }}>{cat.split(' ')[0]}</span>
+                           <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '24px', margin: '0 2rem', borderRadius: '12px', overflow: 'hidden' }}>
+                             <div style={{ width: `${percent}%`, background: 'var(--ow-secondary)', height: '100%', transition: 'width 0.3s' }} />
+                           </div>
+                           <span className="headline-lg" style={{ width: '60px', textAlign: 'right' }}>{votes}명</span>
+                         </div>
+                       );
+                     })}
+                   </div>
+                   
+                   <button 
+                     className="ow-btn neon-glow" 
+                     style={{ marginTop: '3rem', padding: '1rem 3rem' }}
+                     onClick={() => {
+                        const entries = Object.entries(categoryVoteTally);
+                        let winningCat = '동물 & 자연';
+                        if (entries.length > 0) {
+                          winningCat = entries.sort((a,b) => b[1] - a[1])[0][0];
+                        }
+                        socket.emit('endCategoryVote', { pin, winningCategory: winningCat });
+                     }}
+                   >
+                     투표 마감 및 이 카테고리로 시작
+                   </button>
+                 </>
+               )}
+
                {/* 1. Word Quiz */}
                {gameState === 'wordQuiz' && quizData ? (
                  <>
@@ -511,6 +565,41 @@ function HostScreen() {
                    )}
                  </>
                )}
+
+               {/* 9. Irregular Verb Speed Race */}
+               {gameState === 'irregularVerbRace' && verbData && (
+                 <>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
+                     IRREGULAR VERB SPEED
+                   </h3>
+                   
+                   {verbWinner ? (
+                     <div className="surface-card neon-glow" style={{ marginTop: '3rem', padding: '3rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)' }}>
+                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>RACE FINISHED!</h2>
+                       <h3 className="headline-lg" style={{ margin: 0 }}>WINNER: <span style={{ color: 'var(--ow-primary-dim)' }}>{verbWinner}</span></h3>
+                     </div>
+                   ) : (
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
+                       <div className="display-lg" style={{ fontSize: '6rem', color: verbData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
+                         {verbData.timeRemaining}s
+                       </div>
+                       
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', marginTop: '3rem' }}>
+                         {[...verbData.playersInfo].sort((a,b)=>b.score - a.score).slice(0, 5).map((p, idx) => (
+                           <div key={p.id} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem' }}>
+                             <span className="headline-lg" style={{ width: '50px', color: 'var(--on-surface-variant)' }}>#{idx + 1}</span>
+                             <span className="headline-lg" style={{ width: '200px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{p.nickname}</span>
+                             <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '16px', margin: '0 2rem', borderRadius: '8px', overflow: 'hidden' }}>
+                               <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--ow-primary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px var(--ow-primary)' }} />
+                             </div>
+                             <span className="headline-lg" style={{ width: '80px', textAlign: 'right' }}>{p.score} PTS</span>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </>
+               )}
             </div>
           )}
 
@@ -520,7 +609,7 @@ function HostScreen() {
             <div className="grid-players">
               {players.map((p, idx) => (
                 <div key={idx} className="player-badge">
-                  {p.nickname}
+                  <span>{p.nickname}</span>
                 </div>
               ))}
               {players.length === 0 && (
@@ -538,7 +627,13 @@ function HostScreen() {
             GAME MODES
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordQuiz')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
+               if (customVocabCount >= 4) {
+                 startGame('wordQuiz');
+               } else {
+                 socket.emit('startCategoryVote', { pin, options: ['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간'] });
+               }
+            }}>
               <span>Word Quiz</span> <Play size={20} />
             </button>
             <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
@@ -563,6 +658,9 @@ function HostScreen() {
             </button>
             <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('speedRaceTeam')}>
               <span>Speed Race (TEAM)</span> <Play size={20} />
+            </button>
+            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem', '--ow-primary': '#48cfae' }} onClick={() => startGame('irregularVerbRace')}>
+              <span>Irregular Verb (TYPING)</span> <Play size={20} />
             </button>
           </div>
         </aside>
