@@ -26,28 +26,32 @@ function PlayerScreen() {
   const [myVote, setMyVote] = useState(null);
 
   useEffect(() => {
-    socket.connect();
+    if (!socket.connected) socket.connect();
 
-    socket.on('gameStarted', ({ gameMode }) => {
+    const handleGameStarted = ({ gameMode }) => {
       setGameState(gameMode);
-    });
+    };
 
-    socket.on('categoryVoteStarted', ({ options }) => {
+    const handleCategoryVote = ({ options }) => {
       setGameState('categoryVote');
       setVoteOptions(options);
       setMyVote(null);
-    });
+    };
 
-    socket.on('hostDisconnected', () => {
+    const handleHostDisconnected = () => {
       alert('Host has left the game.');
       setJoined(false);
       setGameState('lobby');
-    });
+    };
+
+    socket.on('gameStarted', handleGameStarted);
+    socket.on('categoryVoteStarted', handleCategoryVote);
+    socket.on('hostDisconnected', handleHostDisconnected);
 
     return () => {
-      socket.off('gameStarted');
-      socket.off('hostDisconnected');
-      socket.disconnect();
+      socket.off('gameStarted', handleGameStarted);
+      socket.off('categoryVoteStarted', handleCategoryVote);
+      socket.off('hostDisconnected', handleHostDisconnected);
     };
   }, []);
 

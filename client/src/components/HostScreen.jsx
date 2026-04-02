@@ -163,7 +163,6 @@ function HostScreen() {
       socket.off('raceState');
       socket.off('raceGameOver');
       socket.off('categoryVoteUpdate');
-      socket.disconnect();
     };
   }, []);
 
