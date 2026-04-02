@@ -135,7 +135,7 @@ io.on('connection', (socket) => {
       room.quizCategory = winningCategory; // 선택된 카테고리 저장
       room.gameState = 'wordQuiz';
       io.to(pin).emit('gameStarted', { gameMode: 'wordQuiz' });
-      emitNextWordQuiz(pin, room);
+      setTimeout(() => emitNextWordQuiz(pin, room), 1000);
       console.log(`🏁 Voting ended in ${pin}. Winning category: ${winningCategory}`);
     }
   });
@@ -169,11 +169,11 @@ io.on('connection', (socket) => {
 
       // 1번 게임: 단어 퀴즈
       if (gameMode === 'wordQuiz') {
-        emitNextWordQuiz(pin, room);
+        setTimeout(() => emitNextWordQuiz(pin, room), 1000);
       }
       // 2번 게임: 문장 퍼즐
       else if (gameMode === 'sentencePuzzle') {
-        emitNextSentencePuzzle(pin, room);
+        setTimeout(() => emitNextSentencePuzzle(pin, room), 1000);
       }
       // 3번 게임: 끝말잇기
       else if (gameMode === 'wordChain') {
@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
       }
       // 4번 게임: 디지털 빙고
       else if (gameMode === 'wordBingo') {
-        startWordBingo(pin, room);
+        setTimeout(() => startWordBingo(pin, room), 1000);
       }
       // 5번 게임: 카테고리 폭탄
       else if (gameMode === 'categoryBomb') {
