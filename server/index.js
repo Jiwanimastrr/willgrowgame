@@ -163,12 +163,23 @@ io.on('connection', (socket) => {
   socket.on('startGame', ({ pin, gameMode, category, winningScore }) => {
     const room = rooms[pin];
     if (room && room.host === socket.id) {
+      // 기존 게임 타이머 전부 정리
+      if (room.sentenceRaceTimer) { clearInterval(room.sentenceRaceTimer); room.sentenceRaceTimer = null; }
+      if (room.raceTimer) { clearInterval(room.raceTimer); room.raceTimer = null; }
+      if (room.wordChainTimer) { clearInterval(room.wordChainTimer); room.wordChainTimer = null; }
+      if (room.bombTimer) { clearInterval(room.bombTimer); room.bombTimer = null; }
+      if (room.hunterTimer) { clearInterval(room.hunterTimer); room.hunterTimer = null; }
+      room.sentenceRace = null;
+      room.raceGame = null;
+      room.wordChain = null;
+
       room.players.forEach(p => p.score = 0);
       room.gameState = gameMode;
       if (category) {
         room.quizCategory = category === 'All' ? null : category;
       }
       io.to(pin).emit('gameStarted', { gameMode });
+      io.to(pin).emit('playersUpdated', room.players);
       console.log(`🎮 Game ${gameMode} started in room ${pin} (Cat: ${category})`);
       
       if (gameMode === 'wordQuiz') {

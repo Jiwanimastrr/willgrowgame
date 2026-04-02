@@ -309,7 +309,21 @@ function HostScreen() {
                 <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpeedRaceTeamOptions(true)}>SPEED RACE <span style={{fontSize:'1.5rem'}}>(TEAM)</span></button>
              </div>
              
-             <button className="ow-btn ow-btn-secondary" style={{ marginTop: '3rem', padding: '1rem 3rem', alignSelf: 'flex-start' }} onClick={() => setShowVocabModal(true)}>
+             <button 
+               onClick={() => setShowVocabModal(true)}
+               style={{ 
+                 marginTop: '3rem', padding: '1rem 2.5rem', alignSelf: 'flex-start',
+                 fontSize: '1.5rem', fontFamily: 'var(--font-header)', fontWeight: 800, fontStyle: 'italic',
+                 background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px) saturate(180%)',
+                 WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                 border: '1.5px solid rgba(255,255,255,0.2)', borderRadius: '50px',
+                 color: '#fff', cursor: 'pointer', letterSpacing: '1px',
+                 boxShadow: '0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+                 transition: 'all 0.3s ease', textTransform: 'uppercase'
+               }}
+               onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+               onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'scale(1)'; }}
+             >
                ⚙️ 커스텀 단어장 ({customVocabCount}) {customVocabCount > 0 ? '✅' : ''}
              </button>
            </div>

@@ -33,9 +33,11 @@ function SentencePuzzlePlayer({ pin, nickname }) {
       setFeedback('wrong');
       setTimeout(() => {
         setFeedback(null);
-        // 틀리면 자동 리셋
-        setTokens(prev => [...selectedTokens, ...prev].sort((a,b) => 0.5 - Math.random()));
-        setSelectedTokens([]);
+        // 틀리면 자동 리셋 — functional updater로 최신 상태 참조
+        setSelectedTokens(prevSelected => {
+          setTokens(prevTokens => [...prevSelected, ...prevTokens].sort(() => 0.5 - Math.random()));
+          return [];
+        });
       }, 500);
     });
 
@@ -45,8 +47,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
     });
 
     socket.on('puzzleCorrectAnswer', ({ finalLeaderboard }) => {
-      // 게임 완전 종료
-      if (!finished) setFinished(true);
+      setFinished(true);
       setRaceData(prev => ({ ...prev, leaderboard: finalLeaderboard, ended: true }));
     });
 
@@ -58,7 +59,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
       socket.off('sentenceRaceFinished');
       socket.off('puzzleCorrectAnswer');
     };
-  }, [selectedTokens, finished]);
+  }, []);
 
   useEffect(() => {
     // 마지막 토큰까지 모두 선택되었으면 자동 제출
