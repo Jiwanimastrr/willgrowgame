@@ -27,7 +27,7 @@
   --font-body: 'Noto Sans KR', sans-serif;
   
   /* Shapes & Metrics */
-  --ow-skew: -8deg;
+  --ow-skew: -4deg;
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;

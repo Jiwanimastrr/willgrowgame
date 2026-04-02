@@ -647,10 +647,10 @@ function HostScreen() {
             }}>
               <span>Digital Bingo</span> <Play size={20} />
             </button>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('categoryBomb')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('categoryBomb')}>
               <span>Category Bomb</span> <Play size={20} />
             </button>
-            <button className="ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('spellingHunter')}>
+            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('spellingHunter')}>
               <span>Spelling Hunter</span> <Play size={20} />
             </button>
             <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem' }} onClick={() => startGame('speedRaceIndividual')}>
