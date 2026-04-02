@@ -215,19 +215,22 @@ function HostScreen() {
 
   return (
     <div className="host-container animate-enter" style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
-      {/* Background Hero Video only in Lobby */}
-      {gameState === 'lobby' && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: '#000' }}>
-          <iframe 
-            src="https://www.youtube.com/embed/OAP1us_UMxQ?autoplay=1&mute=1&loop=1&playlist=OAP1us_UMxQ&controls=0&showinfo=0&rel=0&modestbranding=1&disablekb=1" 
-            style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.1)', border: 'none' }}
-            allow="autoplay; encrypted-media" 
-            allowFullScreen
-          />
-          {/* Gradient overlay for readability */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)' }} />
-        </div>
-      )}
+      {/* Background Hero Video (Always present) */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: '#000' }}>
+        <iframe 
+          src="https://www.youtube.com/embed/OAP1us_UMxQ?autoplay=1&mute=1&loop=1&playlist=OAP1us_UMxQ&controls=0&showinfo=0&rel=0&modestbranding=1&disablekb=1" 
+          style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.1)', border: 'none' }}
+          allow="autoplay; encrypted-media" 
+          allowFullScreen
+        />
+        {/* Gradient overlay for readability: lobby has side gradient, game modes have radial dim */}
+        <div style={{ 
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+          background: gameState === 'lobby' 
+             ? 'linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.1) 100%)'
+             : 'rgba(0,0,0,0.6)'
+        }} />
+      </div>
 
       <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: '1px', height: '1px', overflow: 'hidden' }}>
         {/* BGM Video hidden everywhere */}
