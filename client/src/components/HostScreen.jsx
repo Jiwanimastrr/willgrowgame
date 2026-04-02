@@ -82,6 +82,16 @@ function HostScreen() {
 
     socket.on('gameStarted', ({ gameMode }) => {
       setGameState(gameMode);
+      // 이전 게임 상태 전부 리셋
+      setRaceData(null);
+      setRaceWinner(null);
+      setQuizData(null);
+      setPuzzleData(null);
+      setChainData(null);
+      setChainGameOver(null);
+      setHunterData(null);
+      setBombData(null);
+      setBombExploded(null);
     });
 
     socket.on('hostNewQuestion', ({ meaning, answer }) => {
@@ -729,6 +739,14 @@ function HostScreen() {
                )}
 
                {/* 7 & 8. Speed Race */}
+               {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && !raceData && (
+                 <div style={{ textAlign: 'center' }}>
+                   <h3 className="headline-lg pulse-wait-text" style={{ color: 'var(--ow-primary)', fontSize: '4rem', textShadow: '0 0 20px var(--ow-primary)' }}>
+                     SPEED RACE LOADING...
+                   </h3>
+                   <p className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem', marginTop: '2rem' }}>플레이어들에게 문제를 전송하고 있습니다</p>
+                 </div>
+               )}
                {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && raceData && (
                  <>
                    <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)', textAlign: 'center' }}>
