@@ -297,7 +297,6 @@ function HostScreen() {
            
            {/* Left Navigation Menu (Overwatch Style) */}
            <div style={{ width: '450px', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '4rem', zIndex: 10 }}>
-             <img src="/willgrow_logo.png" alt="WillGrow Logo" style={{ width: '250px', marginBottom: '3rem' }} onError={(e) => { e.target.style.display = 'none'; }} />
              
              <div className="ow-main-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowWordQuizOptions(true)}>WORD QUIZ</button>
