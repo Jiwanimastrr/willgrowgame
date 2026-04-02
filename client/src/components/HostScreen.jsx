@@ -575,16 +575,20 @@ function HostScreen() {
                        </div>
                        
                        <div style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '2rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap', marginTop: '3rem' }}>
-                         {chainData.chain.map((word, idx) => (
-                           <div key={idx} className="glassliquid-panel" style={{ 
-                             padding: '2rem 4rem', 
-                             borderColor: idx === chainData.chain.length - 1 ? 'var(--ow-primary)' : 'rgba(255,255,255,0.1)',
-                             background: idx === chainData.chain.length - 1 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.3)',
-                             boxShadow: idx === chainData.chain.length - 1 ? '0 0 30px rgba(204,151,255,0.6)' : 'none'
-                           }}>
-                             <span className="display-md" style={{ fontSize: '4.5rem', letterSpacing: '4px' }}>{word.toUpperCase()}</span>
-                           </div>
-                         ))}
+                         {chainData.chain.slice(-5).map((word, idx, arr) => {
+                           const isLast = idx === arr.length - 1;
+                           return (
+                             <div key={`${chainData.chain.length - arr.length + idx}-${word}`} className="glassliquid-panel" style={{ 
+                               padding: '2rem 4rem', 
+                               borderColor: isLast ? 'var(--ow-primary)' : 'rgba(255,255,255,0.1)',
+                               background: isLast ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.3)',
+                               boxShadow: isLast ? '0 0 30px rgba(204,151,255,0.6)' : 'none',
+                               animation: 'fadeIn 0.3s ease-out'
+                             }}>
+                               <span className="display-md" style={{ fontSize: '4.5rem', letterSpacing: '4px' }}>{word.toUpperCase()}</span>
+                             </div>
+                           );
+                         })}
                        </div>
 
                        <div className="glassliquid-panel" style={{ marginTop: '4rem', display: 'flex', alignItems: 'center', gap: '2rem', padding: '1.5rem 4rem' }}>
