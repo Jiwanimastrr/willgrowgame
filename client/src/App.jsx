@@ -43,7 +43,7 @@ function Home() {
         </h2>
         
         <div style={{ display: 'flex', gap: '1.5rem', width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="ow-btn-secondary" style={{ flex: '1 1 220px', padding: '1.2rem 0', textAlign: 'center' }} onClick={() => navigate('/host')}>
+          <button className="ow-btn ow-btn-secondary" style={{ flex: '1 1 220px', padding: '1.2rem 0', textAlign: 'center' }} onClick={() => navigate('/host')}>
             <span>Create Room (Host)</span>
           </button>
           
