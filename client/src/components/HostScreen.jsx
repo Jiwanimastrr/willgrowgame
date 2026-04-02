@@ -341,9 +341,6 @@ function HostScreen() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', height: '100%' }}>
           <header className="glassliquid-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {gameState !== 'lobby' && (
-                <div style={{ height: '40px' }} />
-              )}
               <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '8rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
@@ -354,6 +351,9 @@ function HostScreen() {
                 </span>
               )) : (
                 <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>0 PLAYERS</span>
+              )}
+              {gameState !== 'lobby' && (
+                <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" style={{ height: '40px', marginLeft: '2rem' }} onError={(e) => { e.target.style.display = 'none'; }} />
               )}
             </div>
           </header>
