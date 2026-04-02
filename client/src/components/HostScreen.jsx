@@ -38,6 +38,10 @@ function HostScreen() {
   const [showSpeedRaceTeamOptions, setShowSpeedRaceTeamOptions] = useState(false);
   const [lobbyStep, setLobbyStep] = useState('waiting');
 
+  const [heroOpacity, setHeroOpacity] = useState(1);
+  const heroIntervalRef = useRef(null);
+  const isHeroFadingRef = useRef(false);
+
   const [ytPlayer, setYtPlayer] = useState(null);
   
   const LOBBY_AUDIO_ID = 'jfKfPfyJRdk'; // Lofi Girl stream
@@ -216,13 +220,41 @@ function HostScreen() {
   return (
     <div className="host-container animate-enter" style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
       {/* Background Hero Video (Always present) */}
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: '#000' }}>
-        <iframe 
-          src="https://www.youtube.com/embed/OAP1us_UMxQ?autoplay=1&mute=1&loop=1&playlist=OAP1us_UMxQ&controls=0&showinfo=0&rel=0&modestbranding=1&disablekb=1" 
-          style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.1)', border: 'none' }}
-          allow="autoplay; encrypted-media" 
-          allowFullScreen
-        />
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: '#000', opacity: heroOpacity, transition: 'opacity 1s ease-in-out' }}>
+        <div style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.1)' }}>
+          <YouTube 
+            videoId="OAP1us_UMxQ"
+            opts={{
+              width: '100%',
+              height: '100%',
+              playerVars: { autoplay: 1, mute: 1, loop: 0, modestbranding: 1, controls: 0, showinfo: 0, rel: 0, disablekb: 1 }
+            }}
+            style={{ width: '100%', height: '100%' }}
+            onReady={(event) => {
+               const player = event.target;
+               player.mute();
+               player.playVideo();
+               if (heroIntervalRef.current) clearInterval(heroIntervalRef.current);
+               heroIntervalRef.current = setInterval(() => {
+                  const time = player.getCurrentTime();
+                  const duration = player.getDuration();
+                  // Fade out roughly 1.5 seconds before it ends
+                  if (duration > 0 && duration - time <= 1.5 && !isHeroFadingRef.current) {
+                     isHeroFadingRef.current = true;
+                     setHeroOpacity(0);
+                     setTimeout(() => {
+                        player.seekTo(0);
+                        player.playVideo();
+                        setTimeout(() => {
+                           setHeroOpacity(1);
+                           isHeroFadingRef.current = false;
+                        }, 100);
+                     }, 1300);
+                  }
+               }, 300);
+            }}
+          />
+        </div>
         {/* Gradient overlay for readability: lobby has side gradient, game modes have radial dim */}
         <div style={{ 
           position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
@@ -300,7 +332,7 @@ function HostScreen() {
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '600px', marginTop: '1.5rem' }}>
                  {players.map((p, idx) => (
-                    <span key={idx} className="glassliquid-badge" style={{ padding: '0.8rem 1.5rem', fontSize: '1.5rem', background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}>{p.nickname}</span>
+                    <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.5rem' }}>{p.nickname}</span>
                  ))}
               </div>
            </div>
@@ -309,13 +341,15 @@ function HostScreen() {
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', height: '100%' }}>
           <header className="glassliquid-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" style={{ height: '40px' }} onError={(e) => { e.target.style.display = 'none'; }} />
+              {gameState !== 'lobby' && (
+                <div style={{ height: '40px' }} />
+              )}
               <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '8rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
               <Users size={24} color="var(--ow-primary)" style={{ marginRight: '0.5rem' }} />
               {players.length > 0 ? players.map((p, idx) => (
-                <span key={idx} className="glassliquid-badge" style={{ padding: '0.4rem 0.8rem', fontSize: '1.2rem', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.2rem' }}>
                   {p.nickname}
                 </span>
               )) : (
@@ -522,44 +556,49 @@ function HostScreen() {
 
                {/* 3. Word Chain */}
                {gameState === 'wordChain' && chainData ? (
-                 <>
-                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0 }}>WORD CHAIN SURVIVAL</h3>
+                 <div style={{ 
+                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                   width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', borderRadius: '30px', padding: '4rem',
+                   boxShadow: '0 0 50px rgba(0,0,0,0.5)',backdropFilter: 'blur(10px)'
+                 }}>
+                   <h3 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0, fontSize: '5rem', textShadow: '0 0 30px var(--ow-primary)' }}>WORD CHAIN SURVIVAL</h3>
                    
                    {chainGameOver ? (
-                     <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>GAME OVER</h2>
-                       <h3 className="headline-lg" style={{ margin: '0 0 2rem 0', color: 'var(--ow-primary-dim)' }}>WINNER: {chainGameOver}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn-secondary">
+                     <div className="surface-card neon-glow" style={{ marginTop: '4rem', textAlign: 'center', padding: '4rem' }}>
+                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 2rem 0', fontSize: '6rem' }}>GAME OVER</h2>
+                       <h3 className="display-md" style={{ margin: '0 0 4rem 0', color: 'var(--ow-primary-dim)', fontSize: '4rem' }}>WINNER: {chainGameOver}</h3>
+                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn" style={{ fontSize: '2.5rem', padding: '1.5rem 4rem' }}>
                          PLAY AGAIN
                        </button>
                      </div>
                    ) : (
-                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                       <div className="display-lg" style={{ color: chainData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 10px currentColor' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '3rem' }}>
+                       <div className="display-lg" style={{ fontSize: '5rem', color: chainData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
                          {chainData.timeRemaining}s
                        </div>
                        
-                       <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', padding: '1rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1rem' }}>
+                       <div style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '2rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap', marginTop: '3rem' }}>
                          {chainData.chain.map((word, idx) => (
-                           <div key={idx} className="surface-card" style={{ 
-                             padding: '1rem 2rem', 
-                             borderColor: idx === chainData.chain.length - 1 ? 'var(--ow-primary)' : 'rgba(64, 72, 93, 0.5)',
-                             boxShadow: idx === chainData.chain.length - 1 ? '0 0 15px rgba(204,151,255,0.4)' : 'none'
+                           <div key={idx} className="glassliquid-panel" style={{ 
+                             padding: '2rem 4rem', 
+                             borderColor: idx === chainData.chain.length - 1 ? 'var(--ow-primary)' : 'rgba(255,255,255,0.1)',
+                             background: idx === chainData.chain.length - 1 ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.3)',
+                             boxShadow: idx === chainData.chain.length - 1 ? '0 0 30px rgba(204,151,255,0.6)' : 'none'
                            }}>
-                             <span className="headline-lg">{word.toUpperCase()}</span>
+                             <span className="display-md" style={{ fontSize: '4.5rem', letterSpacing: '4px' }}>{word.toUpperCase()}</span>
                            </div>
                          ))}
                        </div>
 
-                       <div className="surface-card" style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                         <span className="body-md">현재 턴:</span>
-                         <strong className="headline-lg" style={{ color: 'var(--ow-primary)' }}>
+                       <div className="glassliquid-panel" style={{ marginTop: '4rem', display: 'flex', alignItems: 'center', gap: '2rem', padding: '1.5rem 4rem' }}>
+                         <span className="headline-lg" style={{ fontSize: '3rem' }}>현재 턴:</span>
+                         <strong className="display-md" style={{ color: 'var(--ow-primary)', fontSize: '4rem' }}>
                            {chainData.playersInfo.find(p => p.id === chainData.currentPlayerId)?.nickname || '알 수 없음'}
                          </strong>
                        </div>
                      </div>
                    )}
-                 </>
+                 </div>
                ) : null}
 
                {/* 4. Digital Bingo */}

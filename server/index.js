@@ -198,11 +198,11 @@ io.on('connection', (socket) => {
       }
       // 7번 게임: 스피드 레이스 (개인전)
       else if (gameMode === 'speedRaceIndividual') {
-        startSpeedRace(pin, room, 'individual');
+        setTimeout(() => startSpeedRace(pin, room, 'individual'), 1000);
       }
       // 8번 게임: 스피드 레이스 (팀전)
       else if (gameMode === 'speedRaceTeam') {
-        startSpeedRace(pin, room, 'team');
+        setTimeout(() => startSpeedRace(pin, room, 'team'), 1000);
       }
       // 9번 게임: 불규칙동사 스피드게임 (타이핑)
 
