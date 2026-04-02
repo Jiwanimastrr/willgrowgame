@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '../utils/socket';
 import { Users, Play } from 'lucide-react';
+import YouTube from 'react-youtube';
 
 function HostScreen() {
   const [pin, setPin] = useState(null);
@@ -21,8 +22,7 @@ function HostScreen() {
   const [bombExploded, setBombExploded] = useState(null);
 
   const [hunterData, setHunterData] = useState(null);
-  const [raceData, setRaceData] = useState(null);
-  const [raceWinner, setRaceWinner] = useState(null);
+
 
   const [categoryVoteTally, setCategoryVoteTally] = useState({});
 
@@ -30,21 +30,38 @@ function HostScreen() {
   const [showVocabModal, setShowVocabModal] = useState(false);
   const [vocabInput, setVocabInput] = useState('');
   const [customVocabCount, setCustomVocabCount] = useState(0);
+  const [showSpellChainOptions, setShowSpellChainOptions] = useState(false);
+  const [showSpellingHunterOptions, setShowSpellingHunterOptions] = useState(false);
   const [showWordQuizOptions, setShowWordQuizOptions] = useState(false);
+  const [wordQuizWinningScore, setWordQuizWinningScore] = useState(100);
+  const [showSpeedRaceSoloOptions, setShowSpeedRaceSoloOptions] = useState(false);
+  const [showSpeedRaceTeamOptions, setShowSpeedRaceTeamOptions] = useState(false);
+  const [lobbyStep, setLobbyStep] = useState('waiting');
 
-  const bgmRef = useRef(null);
+  const [ytPlayer, setYtPlayer] = useState(null);
+  
+  const LOBBY_AUDIO_ID = 'jfKfPfyJRdk'; // Lofi Girl stream
+  const GAME_AUDIO_ID = 'ZzHYbM0l4ec'; // Requested music for games
+  const BGM_VIDEO_ID = gameState === 'lobby' ? LOBBY_AUDIO_ID : GAME_AUDIO_ID;
+
+  const onPlayerReady = (event) => {
+    setYtPlayer(event.target);
+    event.target.setVolume(20);
+    // Attempt autoplay
+    event.target.playVideo();
+  };
 
   useEffect(() => {
-    if (bgmRef.current) {
-      if (gameState !== 'lobby') {
-        bgmRef.current.volume = 0.4; // 배경음악 크기 조절
-        bgmRef.current.play().catch(e => console.log('BGM Play blocked:', e));
-      } else {
-        bgmRef.current.pause();
-        bgmRef.current.currentTime = 0;
+    // 자동재생 정책(Autoplay Policy) 우회
+    const unlockAudio = () => {
+      if (ytPlayer) {
+         ytPlayer.playVideo();
       }
-    }
-  }, [gameState]);
+      window.removeEventListener('click', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    return () => window.removeEventListener('click', unlockAudio);
+  }, [ytPlayer]);
 
   useEffect(() => {
     socket.connect();
@@ -67,16 +84,20 @@ function HostScreen() {
       setQuizData({ meaning, answer, winner: null });
     });
 
-    socket.on('correctAnswer', ({ winnerId, winnerNickname }) => {
-      setQuizData(prev => prev ? { ...prev, winner: winnerNickname } : null);
+    socket.on('correctAnswer', ({ winnerId, winnerNickname, ended, winner }) => {
+      setQuizData(prev => prev ? { ...prev, winner: winnerNickname, ended, winner } : null);
     });
 
-    socket.on('hostNewPuzzle', ({ meaning, sentence }) => {
-      setPuzzleData({ meaning, sentence, winner: null });
+    socket.on('sentenceRaceStarted', ({ totalSentences }) => {
+      setPuzzleData({ isActive: true, totalSentences, timeRemaining: 180, leaderboard: [], winner: null });
     });
 
-    socket.on('puzzleCorrectAnswer', ({ winnerId, winnerNickname }) => {
-      setPuzzleData(prev => prev ? { ...prev, winner: winnerNickname } : null);
+    socket.on('sentenceRaceState', (data) => {
+      setPuzzleData(prev => ({ ...(prev || {}), isActive: true, ...data }));
+    });
+
+    socket.on('puzzleCorrectAnswer', ({ winnerId, winnerNickname, finalLeaderboard }) => {
+      setPuzzleData(prev => prev ? { ...prev, winner: winnerNickname, finalLeaderboard, isActive: false } : null);
     });
 
     socket.on('wordChainState', (data) => {
@@ -114,11 +135,6 @@ function HostScreen() {
     });
     socket.on('raceGameOver', ({ winner }) => setRaceWinner(winner));
 
-    socket.on('verbState', (data) => {
-      setVerbData(data);
-      setVerbWinner(null);
-    });
-    socket.on('verbGameOver', ({ winner }) => setVerbWinner(winner));
 
     socket.on('categoryVoteUpdate', ({ tally }) => {
       setCategoryVoteTally(tally);
@@ -147,12 +163,15 @@ function HostScreen() {
     };
   }, []);
 
-  const startGame = (gameMode, category = null) => {
+  const startGame = (gameMode, category = null, winningScore = null) => {
     if (players.length === 0) {
       alert('참여자가 1명 이상 필요합니다.');
       return;
     }
-    socket.emit('startGame', { pin, gameMode, category });
+    socket.emit('startGame', { pin, gameMode, category, winningScore });
+    setShowWordQuizOptions(false);
+    setShowSpeedRaceSoloOptions(false);
+    setShowSpeedRaceTeamOptions(false);
   };
 
   const handleVocabSubmit = () => {
@@ -195,75 +214,117 @@ function HostScreen() {
   const joinUrl = `${window.location.origin}/player?pin=${pin}`;
 
   return (
-    <div className="host-container animate-enter">
-      <header className="host-header" style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.nextSibling.style.display = 'block';
-          }} />
-          <div className="logo-placeholder" style={{ display: 'none' }}>
-            WILLGROW
-          </div>
-          <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
+    <div className="host-container animate-enter" style={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden', margin: 0, padding: 0 }}>
+      {/* Background Hero Video only in Lobby */}
+      {gameState === 'lobby' && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1, pointerEvents: 'none', overflow: 'hidden', background: '#000' }}>
+          <iframe 
+            src="https://www.youtube.com/embed/OAP1us_UMxQ?autoplay=1&mute=1&loop=1&playlist=OAP1us_UMxQ&controls=0&showinfo=0&rel=0&modestbranding=1&disablekb=1" 
+            style={{ width: '100vw', height: '56.25vw', minHeight: '100vh', minWidth: '177.77vh', position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%) scale(1.1)', border: 'none' }}
+            allow="autoplay; encrypted-media" 
+            allowFullScreen
+          />
+          {/* Gradient overlay for readability */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0) 100%)' }} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          
-          <audio ref={bgmRef} src="/bgm.webm" loop />
+      )}
 
-          <Users size={32} color="var(--ow-primary)" />
-          <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>
-            {players.length} PLAYERS
-          </span>
-        </div>
-      </header>
+      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: '1px', height: '1px', overflow: 'hidden' }}>
+        {/* BGM Video hidden everywhere */}
+        <YouTube
+          key={BGM_VIDEO_ID}
+          videoId={BGM_VIDEO_ID}
+          opts={{
+            playerVars: { autoplay: 1, controls: 0, disablekb: 1, loop: 1, playlist: BGM_VIDEO_ID },
+          }}
+          onReady={onPlayerReady}
+        />
+      </div>
 
-      <main style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '2rem', paddingBottom: '2rem' }}>
-        
-        {/* Left Side: Lobby & Dashboards */}
-        <section className="ow-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {gameState === 'lobby' ? (
-            <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', width: '100%' }}>
-              <h2 className="display-lg" style={{ color: 'var(--ow-secondary)', margin: '0 0 1rem 0' }}>
-                SCAN TO JOIN!
-              </h2>
-              <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '2rem', marginBottom: '3rem' }}>
-                스마트폰 카메라로 화면의 QR 코드를 스캔하세요!
-              </h3>
-              
-              <div style={{ display: 'flex', gap: '5rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
-                {pin ? (
-                  <div style={{ padding: '20px', background: 'white', borderRadius: '1.5rem', boxShadow: '0 0 40px rgba(204,151,255,0.4)', outline: '5px solid var(--ow-primary)', outlineOffset: '10px' }}>
-                    <QRCodeSVG value={joinUrl} size={320} />
+      {/* Return Home Button (Not in Lobby) */}
+      {(gameState !== 'lobby') && (
+        <button 
+          className="btn-return-home" 
+          onClick={() => {
+            if(window.confirm('로비로 돌아가시겠습니까? 게임 진행 상황이 초기화될 수 있습니다.')) {
+               socket.emit('startGame', { pin, gameMode: 'lobby' });
+               setLobbyStep('waiting');
+            }
+          }}
+          style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 100 }}
+        >
+          🏠 LOBBY
+        </button>
+      )}
+
+      {/* Lobby View */}
+      {gameState === 'lobby' ? (
+        <div style={{ display: 'flex', width: '100%', height: '100%' }}>
+           
+           {/* Left Navigation Menu (Overwatch Style) */}
+           <div style={{ width: '450px', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '4rem', zIndex: 10 }}>
+             <img src="/willgrow_logo.png" alt="WillGrow Logo" style={{ width: '250px', marginBottom: '3rem' }} onError={(e) => { e.target.style.display = 'none'; }} />
+             
+             <div className="ow-main-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowWordQuizOptions(true)}>WORD QUIZ</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('sentencePuzzle')}>SENTENCE RACE</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('wordChain')}>WORD CHAIN</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => { setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo'); }}>DIGITAL BINGO</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('categoryBomb')}>CATEGORY BOMB</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpellingHunterOptions(true)}>SPELLING HUNTER</button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpeedRaceSoloOptions(true)}>SPEED RACE <span style={{fontSize:'1.5rem'}}>(SOLO)</span></button>
+                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpeedRaceTeamOptions(true)}>SPEED RACE <span style={{fontSize:'1.5rem'}}>(TEAM)</span></button>
+             </div>
+             
+             <button className="ow-btn ow-btn-secondary" style={{ marginTop: '3rem', padding: '1rem 3rem', alignSelf: 'flex-start' }} onClick={() => setShowVocabModal(true)}>
+               ⚙️ 커스텀 단어장 ({customVocabCount}) {customVocabCount > 0 ? '✅' : ''}
+             </button>
+           </div>
+
+           {/* Center Content: QR Code & Players */}
+           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10, paddingRight: '200px' }}>
+              <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(15px)', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+                  <h1 className="display-lg" style={{ color: 'var(--ow-secondary)', fontSize: '3.5rem', marginBottom: '2rem', textShadow: '0 0 20px var(--ow-secondary)' }}>PIN: {pin}</h1>
+                  <div style={{ padding: '20px', background: 'white', borderRadius: '20px', display: 'inline-block', boxShadow: '0 20px 50px rgba(0,0,0,0.4)', transform: 'scale(1.1)' }}>
+                     <QRCodeSVG value={joinUrl} size={280} />
                   </div>
-                ) : (
-                  <div style={{ width: 320, height: 320, background: 'rgba(255,255,255,0.1)', borderRadius: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                     <span className="headline-lg">LOADING...</span>
-                  </div>
-                )}
-                
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '2rem', marginBottom: '1rem' }}>게임 핀 번호 (GAME PIN)</h3>
-                  <div className="display-lg" style={{ fontSize: '7rem', color: 'var(--ow-primary)', letterSpacing: '8px', textShadow: '0 0 40px rgba(204,151,255,0.8)' }}>
-                    {pin || 'LOADING...'}
-                  </div>
-                  <button 
-                    className="ow-btn ow-btn-secondary" 
-                    style={{ marginTop: '2rem', fontSize: '1.2rem', padding: '1rem 2rem' }}
-                    onClick={() => setShowVocabModal(true)}
-                  >
-                    ⚙️ 커스텀 단어장 업로드
-                  </button>
-                  {customVocabCount > 0 && (
-                    <div style={{ color: 'var(--ow-primary)', marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
-                      ✅ 커스텀 단어 {customVocabCount}개 적용됨
-                    </div>
-                  )}
-                </div>
+                  <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.8rem', marginTop: '2.5rem', letterSpacing: '2px' }}>{joinUrl}</h3>
               </div>
+
+              <div style={{ marginTop: '3rem', display: 'flex', alignItems: 'center', gap: '1rem', background: 'rgba(0,0,0,0.6)', padding: '1rem 3rem', borderRadius: '50px' }}>
+                 <Users size={32} color="var(--ow-primary)" />
+                 <span className="headline-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem' }}>{players.length} PLAYERS</span>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '800px', marginTop: '1.5rem' }}>
+                 {players.map((p, idx) => (
+                    <span key={idx} className="glassliquid-badge" style={{ padding: '0.8rem 1.5rem', fontSize: '1.5rem', background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.2)' }}>{p.nickname}</span>
+                 ))}
+              </div>
+           </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, width: '100%', height: '100%' }}>
+          <header className="glassliquid-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" style={{ height: '40px' }} onError={(e) => { e.target.style.display = 'none'; }} />
+              <h1 className="headline-lg" style={{ color: 'var(--on-surface)', marginLeft: '1rem' }}>HOST BOARD</h1>
             </div>
-          ) : (
-             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '8rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
+              <Users size={24} color="var(--ow-primary)" style={{ marginRight: '0.5rem' }} />
+              {players.length > 0 ? players.map((p, idx) => (
+                <span key={idx} className="glassliquid-badge" style={{ padding: '0.4rem 0.8rem', fontSize: '1.2rem', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                  {p.nickname}
+                </span>
+              )) : (
+                <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>0 PLAYERS</span>
+              )}
+            </div>
+          </header>
+
+          <main style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '2rem', padding: '2rem', maxWidth: '1400px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+            <section className="glassliquid-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
+
                
                {/* 0. Category Vote */}
                {gameState === 'categoryVote' && (
@@ -272,7 +333,7 @@ function HostScreen() {
                      VOTING: WORD QUIZ CATEGORY
                    </h3>
                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '600px', marginTop: '3rem', gap: '1.5rem' }}>
-                     {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간'].map(cat => {
+                     {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간', '숫자'].map(cat => {
                        const votes = categoryVoteTally[cat] || 0;
                        const totalVotes = Math.max(1, Object.values(categoryVoteTally).reduce((a,b)=>a+b, 0));
                        const percent = (votes / totalVotes) * 100;
@@ -308,18 +369,26 @@ function HostScreen() {
                 {/* 1. Word Quiz */}
                {gameState === 'wordQuiz' && quizData ? (
                  <>
-                   <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem' }}>WHAT IS THIS WORD?</h3>
-                   <h1 className="display-lg" style={{ color: 'var(--on-surface)', margin: '1rem 0', textAlign: 'center' }}>
-                     {quizData.meaning}
-                   </h1>
+                   <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem', marginBottom: '2rem' }}>WHAT IS THIS WORD?</h3>
+                   <div style={{ padding: '2rem', background: 'rgba(0, 255, 255, 0.05)', borderRadius: '1rem', border: '2px solid rgba(0, 255, 255, 0.3)', width: '100%' }}>
+                     <h1 className="word-question-big">
+                       {quizData.meaning}
+                     </h1>
+                   </div>
                    
-                   {quizData.winner ? (
+                   {quizData.ended ? (
+                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center', padding: '3rem', border: '2px solid var(--ow-primary)' }}>
+                        <h2 className="display-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 2rem 0', fontSize: '4rem' }}>WORD QUIZ FINISHED!</h2>
+                        <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '1.5rem', fontSize: '2.5rem' }}>{quizData.winner} HAS WON THE GAME!</h3>
+                        <div className="body-md" style={{ color: 'var(--on-surface-variant)' }}>Press 'Stop Game' to return to lobby.</div>
+                      </div>
+                    ) : quizData.winner ? (
                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
                        <h2 className="headline-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 1rem 0' }}>WINNER: {quizData.winner}</h2>
                        <h3 className="body-md" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>ANSWER: {quizData.answer}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn">
-                         NEXT QUESTION
-                       </button>
+                       <div className="body-md" style={{ color: 'var(--ow-secondary)', marginTop: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>
+                         LOADING NEXT QUESTION...
+                       </div>
                      </div>
                    ) : (
                      <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR ANSWERS...</div>
@@ -396,26 +465,56 @@ function HostScreen() {
                  </>
                ) : null}
 
-               {/* 2. Sentence Puzzle */}
+               {/* 2. Sentence Puzzle (Sentence Race) */}
                {gameState === 'sentencePuzzle' && puzzleData ? (
-                 <>
-                   <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem' }}>WHAT IS THIS SENTENCE?</h3>
-                   <h1 className="display-lg" style={{ color: 'var(--on-surface)', margin: '1rem 0', textAlign: 'center' }}>
-                     {puzzleData.meaning}
-                   </h1>
-                   
-                   {puzzleData.winner ? (
-                     <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center' }}>
-                       <h2 className="headline-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 1rem 0' }}>WINNER: {puzzleData.winner}</h2>
-                       <h3 className="body-md" style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>ANSWER: {puzzleData.sentence}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn">
-                         NEXT PUZZLE
-                       </button>
-                     </div>
-                   ) : (
-                     <div className="body-md" style={{ marginTop: '2rem', color: 'var(--ow-secondary)', fontSize: '1.5rem', opacity: 0.8 }}>WAITING FOR COMPLETED SENTENCES...</div>
-                   )}
-                 </>
+                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="display-lg" style={{ fontSize: '8rem', color: puzzleData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-primary)', textShadow: '0 0 20px currentColor' }}>
+                      {puzzleData.timeRemaining}s
+                    </div>
+                    
+                    {puzzleData.winner ? (
+                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center', width: '90%', padding: '3rem' }}>
+                        <h2 className="display-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 2rem 0', fontSize: '4rem' }}>RACE FINISHED!</h2>
+                        <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '3rem' }}>FINAL STANDINGS</h3>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+                          {(puzzleData.finalLeaderboard || puzzleData.leaderboard || []).slice(0, 5).map((p, idx) => {
+                             const isFirst = idx === 0;
+                             const rankColor = isFirst ? 'var(--ow-primary)' : (idx === 1 ? 'var(--ow-secondary)' : (idx === 2 ? '#b87333' : 'var(--on-surface-variant)'));
+                             return (
+                               <div key={p.id} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1.5rem 3rem', transform: isFirst ? 'scale(1.05)' : 'none', border: isFirst ? `2px solid ${rankColor}` : 'none' }}>
+                                 <div className="display-lg" style={{ color: rankColor, width: '80px', fontSize: isFirst ? '3.5rem' : '2.5rem' }}>#{idx + 1}</div>
+                                 <div className="display-lg" style={{ flex: 1, textAlign: 'left', paddingLeft: '2rem', color: isFirst ? 'var(--on-surface)' : 'var(--on-surface-variant)', fontSize: isFirst ? '3rem' : '2rem' }}>{p.nickname}</div>
+                                 <div className="display-lg" style={{ color: rankColor, width: '150px', textAlign: 'right', fontSize: isFirst ? '3rem' : '2rem' }}>{p.score} PT</div>
+                               </div>
+                             );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '2rem', width: '80%' }}>
+                        <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '1rem', textAlign: 'center' }}>LIVE LEADERBOARD</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          {(puzzleData.leaderboard || []).map((p, idx) => {
+                             const isFirst = idx === 0;
+                             const rankColor = isFirst ? 'var(--ow-primary)' : (idx === 1 ? 'var(--ow-secondary)' : (idx === 2 ? '#b87333' : 'var(--on-surface-variant)'));
+                             const progressRatio = Math.min((p.score / 200) * 100, 100); // 20 sentences, 10 points each
+                             
+                             return (
+                               <div key={p.id} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1rem 2rem' }}>
+                                 <div className="headline-lg" style={{ color: rankColor, width: '50px', fontSize: isFirst ? '2.5rem' : '2rem' }}>#{idx + 1}</div>
+                                 <span className="headline-lg" style={{ width: '200px', paddingLeft: '1rem', color: isFirst ? 'var(--on-surface)' : 'var(--on-surface-variant)' }}>{p.nickname}</span>
+                                 <div style={{ flex: 1, height: '12px', background: 'rgba(0,0,0,0.5)', margin: '0 2rem', borderRadius: '6px', overflow: 'hidden' }}>
+                                   <div style={{ width: `${progressRatio}%`, height: '100%', background: rankColor, transition: 'width 0.5s ease', boxShadow: `0 0 10px ${rankColor}` }} />
+                                 </div>
+                                 <div className="display-lg" style={{ color: rankColor, width: '100px', textAlign: 'right' }}>{p.score} PT</div>
+                               </div>
+                             );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                 </div>
                ) : null}
 
                {/* 3. Word Chain */}
@@ -551,21 +650,25 @@ function HostScreen() {
                {/* 6. Spelling Hunter */}
                {gameState === 'spellingHunter' && hunterData && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', margin: 0 }}>SPELLING HUNTER</h3>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', margin: 0, textShadow: '0 0 10px rgba(0,255,255,0.4)', textAlign: 'center' }}>
+                     SPELLING HUNTER SURVIVAL
+                   </h3>
                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
-                     <div className="display-lg" style={{ color: hunterData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-primary)', textShadow: '0 0 15px currentColor' }}>
-                       {hunterData.timeRemaining}s
-                     </div>
                      
                      {!hunterData.isActive ? (
-                       <div className="surface-card neon-glow" style={{ marginTop: '2rem', padding: '2rem 4rem', borderColor: 'var(--ow-primary)', textAlign: 'center' }}>
+                       <div className="surface-card neon-glow" style={{ padding: '2rem 4rem', borderColor: 'var(--ow-primary)', textAlign: 'center' }}>
                          <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0 }}>GAME OVER</h2>
+                         {hunterData.winner && <h3 className="headline-lg" style={{ marginTop: '1rem' }}>WINNER: {hunterData.winner}</h3>}
                        </div>
                      ) : (
-                        <div className="body-md" style={{ color: 'var(--on-surface-variant)', marginTop: '1rem' }}>진행 중... 화면에서 단어들이 떨어집니다!</div>
+                        <div className="body-md" style={{ color: 'var(--on-surface-variant)' }}>
+                           <span style={{ fontSize: '2rem', color: 'var(--ow-error)' }}>{hunterData.aliveCount}</span> 명 생존중
+                           <br />
+                           레벨: Math.floor(hunterData.spawnInterval ? (3000 / hunterData.spawnInterval) : 1)
+                        </div>
                      )}
 
-                     <h2 className="headline-lg" style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--on-surface)' }}>LEADERBOARD</h2>
+                     <h2 className="headline-lg" style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--on-surface)' }}>LEADERBOARD (SCORE)</h2>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '80%' }}>
                        {[...players].sort((a,b) => b.score - a.score).slice(0, 5).map((p, idx) => (
                          <div key={idx} className="surface-card" style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 2rem' }}>
@@ -581,7 +684,7 @@ function HostScreen() {
                {/* 7 & 8. Speed Race */}
                {(gameState === 'speedRaceIndividual' || gameState === 'speedRaceTeam') && raceData && (
                  <>
-                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
+                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)', textAlign: 'center' }}>
                      SPEED RACE ({raceData.type === 'team' ? 'TEAM' : 'SOLO'})
                    </h3>
                    
@@ -591,43 +694,73 @@ function HostScreen() {
                        <h3 className="headline-lg" style={{ margin: 0 }}>WINNER: <span style={{ color: 'var(--ow-primary-dim)' }}>{raceWinner}</span></h3>
                      </div>
                    ) : (
-                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
-                       <div className="display-lg" style={{ fontSize: '6rem', color: raceData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '1rem', flex: 1, paddingRight: '2rem' }}>
+                       <div className="display-lg" style={{ marginBottom: '2rem', fontSize: '5rem', color: raceData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
                          {raceData.timeRemaining}s
                        </div>
                        
-                       <div style={{ width: '100%', marginTop: '3rem' }}>
+                       <div style={{ position: 'relative', width: '100%', paddingRight: '30px' }}>
+                         {/* Finish Line */}
+                         <div style={{ position: 'absolute', right: '-5px', top: 0, bottom: 0, width: '2px', background: 'rgba(255,255,255,0.5)', zIndex: 0 }}></div>
+                         
                          {raceData.type === 'team' ? (
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', width: '100%' }}>
                              {Object.entries(raceData.teams)
                                .sort((a,b) => b[1] - a[1])
-                               .map(([team, score]) => (
-                                 <div key={team} className="surface-card" style={{ display: 'flex', alignItems: 'center' }}>
-                                   <span className="headline-lg" style={{ width: '180px', color: team === 'RED' ? 'var(--ow-error)' : team === 'BLUE' ? 'var(--ow-secondary)' : team === 'GREEN' ? 'var(--ow-primary-dim)' : 'var(--ow-primary)' }}>
-                                     {team} TEAM
-                                   </span>
-                                   <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '24px', margin: '0 2rem', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                     <div style={{ width: `${Math.min(100, (score / 30) * 100)}%`, background: 'var(--ow-primary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 10px var(--ow-primary)' }} />
+                               .map(([team, score]) => {
+                                 const percent = Math.min(100, (score / 30) * 100);
+                                 const colorMap = { 'RED': '#ef4444', 'BLUE': '#3b82f6', 'GREEN': '#22c55e', 'YELLOW': '#eab308' };
+                                 const barColor = colorMap[team] || '#a855f7';
+                                 return (
+                                   <div key={team} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+                                     <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.4rem' }}>
+                                       {team}
+                                     </span>
+                                     <div style={{ flex: 1, position: 'relative', height: '16px', background: `${barColor}33`, borderRadius: '8px' }}>
+                                       <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '8px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                                          <div style={{ 
+                                             position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)',
+                                             width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000',
+                                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
+                                             boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                                          }}>
+                                             {score}
+                                          </div>
+                                       </div>
+                                     </div>
                                    </div>
-                                   <span className="headline-lg" style={{ width: '100px', textAlign: 'right' }}>{score} PTS</span>
-                                 </div>
-                             ))}
+                                 );
+                             })}
                            </div>
                          ) : (
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
                              {[...raceData.playersInfo]
                                .sort((a,b) => b.score - a.score)
-                               .slice(0, 5)
-                               .map((p, idx) => (
-                                 <div key={p.id} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem' }}>
-                                   <span className="headline-lg" style={{ width: '50px', color: 'var(--on-surface-variant)' }}>#{idx + 1}</span>
-                                   <span className="headline-lg" style={{ width: '200px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{p.nickname}</span>
-                                   <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '16px', margin: '0 2rem', borderRadius: '8px', overflow: 'hidden' }}>
-                                     <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--ow-secondary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px var(--ow-secondary)' }} />
+                               .slice(0, 10)
+                               .map((p, idx) => {
+                                 const percent = Math.min(100, (p.score / 20) * 100);
+                                 const colorList = ['#3b82f6', '#eab308', '#22c55e', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
+                                 const barColor = colorList[idx % colorList.length];
+                                 return (
+                                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+                                     <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                       {p.nickname}
+                                     </span>
+                                     <div style={{ flex: 1, position: 'relative', height: '14px', background: `${barColor}33`, borderRadius: '7px' }}>
+                                       <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '7px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                                          <div style={{ 
+                                             position: 'absolute', right: '-14px', top: '50%', transform: 'translateY(-50%)',
+                                             width: '28px', height: '28px', borderRadius: '50%', background: '#fff', color: '#000',
+                                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem',
+                                             boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                                          }}>
+                                             {p.score}
+                                          </div>
+                                       </div>
+                                     </div>
                                    </div>
-                                   <span className="headline-lg" style={{ width: '80px', textAlign: 'right' }}>{p.score} PTS</span>
-                                 </div>
-                             ))}
+                                 );
+                             })}
                            </div>
                          )}
                        </div>
@@ -636,114 +769,88 @@ function HostScreen() {
                  </>
                )}
 
-               {/* 9. Irregular Verb Speed Race */}
-               {gameState === 'irregularVerbRace' && verbData && (
-                 <>
-                   <h3 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 10px rgba(204,151,255,0.4)' }}>
-                     IRREGULAR VERB SPEED
-                   </h3>
-                   
-                   {verbWinner ? (
-                     <div className="surface-card neon-glow" style={{ marginTop: '3rem', padding: '3rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)' }}>
-                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>RACE FINISHED!</h2>
-                       <h3 className="headline-lg" style={{ margin: 0 }}>WINNER: <span style={{ color: 'var(--ow-primary-dim)' }}>{verbWinner}</span></h3>
-                     </div>
-                   ) : (
-                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '2rem' }}>
-                       <div className="display-lg" style={{ fontSize: '6rem', color: verbData.timeRemaining <= 10 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
-                         {verbData.timeRemaining}s
-                       </div>
-                       
-                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', marginTop: '3rem' }}>
-                         {[...verbData.playersInfo].sort((a,b)=>b.score - a.score).slice(0, 5).map((p, idx) => (
-                           <div key={p.id} className="surface-card" style={{ display: 'flex', alignItems: 'center', padding: '1rem 1.5rem' }}>
-                             <span className="headline-lg" style={{ width: '50px', color: 'var(--on-surface-variant)' }}>#{idx + 1}</span>
-                             <span className="headline-lg" style={{ width: '200px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{p.nickname}</span>
-                             <div style={{ flex: 1, background: 'rgba(0,0,0,0.5)', height: '16px', margin: '0 2rem', borderRadius: '8px', overflow: 'hidden' }}>
-                               <div style={{ width: `${Math.min(100, (p.score / 20) * 100)}%`, background: 'var(--ow-primary)', height: '100%', transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)', boxShadow: '0 0 8px var(--ow-primary)' }} />
-                             </div>
-                             <span className="headline-lg" style={{ width: '80px', textAlign: 'right' }}>{p.score} PTS</span>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   )}
-                 </>
-               )}
-            </div>
-          )}
 
-          {/* Lobby bottom area with joining players list */}
-          <div style={{ borderTop: '1px solid rgba(64, 72, 93, 0.4)', marginTop: '2rem', paddingTop: '2rem', flex: 1 }}>
-            <h3 className="headline-lg" style={{ margin: '0 0 1.5rem 0', color: 'var(--on-surface)' }}>PLAYERS ({players.length})</h3>
-            <div className="grid-players">
-              {players.map((p, idx) => (
-                <div key={idx} className="player-badge">
-                  <span>{p.nickname}</span>
-                </div>
-              ))}
-              {players.length === 0 && (
-                <div className="body-md" style={{ color: 'var(--on-surface-variant)', gridColumn: '1 / -1', textAlign: 'center', padding: '2rem' }}>
-                  Waiting for players to join...
-                </div>
-              )}
             </div>
+             </section>
+          </main>
+        </div>
+      )}
+
+      {/* Genie Category Modals */}
+      {showWordQuizOptions && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowWordQuizOptions(false)}>
+          <div className="glassliquid-panel" style={{ width: '90%', maxWidth: '800px', animation: 'zoomIn 0.3s ease-out', padding: '3rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '1rem' }}>WORD QUIZ OPTIONS</h2>
+            
+            <div className="surface-card" style={{ marginBottom: '2rem', padding: '1.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2rem' }}>
+              <span className="body-md" style={{ fontSize: '1.5rem', color: 'var(--on-surface)' }}>WINNING SCORE (Multiples of 10):</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button className="ow-btn" style={{ padding: '0.5rem 1rem', fontSize: '1.5rem' }} onClick={() => setWordQuizWinningScore(prev => Math.max(10, prev - 10))}>-</button>
+                <span className="display-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem', width: '80px', textAlign: 'center' }}>{wordQuizWinningScore}</span>
+                <button className="ow-btn" style={{ padding: '0.5rem 1rem', fontSize: '1.5rem' }} onClick={() => setWordQuizWinningScore(prev => prev + 10)}>+</button>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+               <button className="ow-btn" onClick={() => { startGame('categoryVote', null, wordQuizWinningScore); setShowWordQuizOptions(false); }}>VOTE 🗳️</button>
+               <button className="ow-btn" onClick={() => { startGame('wordQuiz', 'All', wordQuizWinningScore); setShowWordQuizOptions(false); }}>ALL RANDOM 🎲</button>
+               {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간', '숫자'].map(cat => (
+                 <button key={cat} className="ow-btn" onClick={() => { startGame('wordQuiz', cat, wordQuizWinningScore); setShowWordQuizOptions(false); }}>{cat}</button>
+               ))}
+               <button className="ow-btn" style={{ borderColor: 'var(--ow-error)', color: 'var(--ow-error)' }} onClick={() => { startGame('wordQuiz', 'Custom', wordQuizWinningScore); setShowWordQuizOptions(false); }}>CUSTOM VOCAB 📋</button>
+            </div>
+            <button className="ow-btn ow-btn-secondary" style={{ marginTop: '3rem', width: '200px' }} onClick={() => setShowWordQuizOptions(false)}>CANCEL</button>
           </div>
-        </section>
+        </div>
+      )}
 
-        {/* Right Side: Game Controls (Cyber-Luxe Monolith Style) */}
-        <aside className="ow-panel" style={{ width: '380px', flexShrink: 0 }}>
-          <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 2rem 0', paddingBottom: '1rem', borderBottom: '1px solid rgba(64,72,93,0.5)' }}>
-            GAME MODES
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => setShowWordQuizOptions(p => !p)}>
-                <span>Word Quiz</span> <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '1rem', opacity: 0.7 }}>Select Category ▼</span> <Play size={20} /></div>
-              </button>
-              {showWordQuizOptions && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid var(--ow-primary)' }}>
-                  <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', 'All')}>🎲 All Random</button>
-                  {customVocabCount > 0 && (
-                    <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start', '--ow-primary': '#48cfae' }} onClick={() => startGame('wordQuiz', 'Custom')}>⭐ Custom Vocab</button>
-                  )}
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '동물 & 자연')}>🦁 Animals & Nature</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '음식 & 과일')}>🍔 Food & Fruits</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '사물 & 장소')}>🏫 Objects & Places</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
-                </div>
-              )}
+      {showSpellingHunterOptions && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="glassliquid-panel" style={{ width: '90%', maxWidth: '800px', animation: 'zoomIn 0.3s ease-out', padding: '3rem', textAlign: 'center' }}>
+            <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '2rem' }}>HUNTER CATEGORY</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+               <button className="ow-btn" onClick={() => { startGame('spellingHunter', 'All'); setShowSpellingHunterOptions(false); }}>ALL RANDOM 🎲</button>
+               {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간', '숫자'].map(cat => (
+                 <button key={cat} className="ow-btn" onClick={() => { startGame('spellingHunter', cat); setShowSpellingHunterOptions(false); }}>{cat}</button>
+               ))}
+               <button className="ow-btn" style={{ borderColor: 'var(--ow-error)', color: 'var(--ow-error)' }} onClick={() => { startGame('spellingHunter', 'Custom'); setShowSpellingHunterOptions(false); }}>CUSTOM VOCAB 📋</button>
             </div>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('sentencePuzzle')}>
-              <span>Sentence Race</span> <Play size={20} />
-            </button>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('wordChain')}>
-              <span>Word Chain</span> <Play size={20} />
-            </button>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => {
-              setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo');
-            }}>
-              <span>Digital Bingo</span> <Play size={20} />
-            </button>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('categoryBomb')}>
-              <span>Category Bomb</span> <Play size={20} />
-            </button>
-            <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('spellingHunter')}>
-              <span>Spelling Hunter</span> <Play size={20} />
-            </button>
-            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem' }} onClick={() => startGame('speedRaceIndividual')}>
-              <span>Speed Race (SOLO)</span> <Play size={20} />
-            </button>
-            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => startGame('speedRaceTeam')}>
-              <span>Speed Race (TEAM)</span> <Play size={20} />
-            </button>
-            <button className="ow-btn" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem', marginTop: '1rem', '--ow-primary': '#48cfae' }} onClick={() => startGame('irregularVerbRace')}>
-              <span>Irregular Verb (TYPING)</span> <Play size={20} />
-            </button>
+            <button className="ow-btn ow-btn-secondary" style={{ marginTop: '3rem', width: '200px' }} onClick={() => setShowSpellingHunterOptions(false)}>CANCEL</button>
           </div>
-        </aside>
+        </div>
+      )}
 
-      </main>
+      {showSpeedRaceSoloOptions && (
+        <div className="genie-modal-container" onClick={() => setShowSpeedRaceSoloOptions(false)}>
+          <div className="genie-modal-content" onClick={(e) => e.stopPropagation()}>
+             <h2 className="genie-modal-head">🏎️ SPEED RACE (SOLO)</h2>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', 'All Random')}>🎲 All Random</button>
+             {customVocabCount > 0 && <button className="genie-btn" style={{ color: '#48cfae', borderColor: '#48cfae' }} onClick={() => startGame('speedRaceIndividual', 'Custom')}>⭐ Custom Vocab</button>}
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '동물 & 자연')}>🦁 Animals & Nature</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '음식 & 과일')}>🍔 Food & Fruits</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '사물 & 장소')}>🏫 Objects & Places</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '숫자')}>🔢 Numbers</button>
+             <button className="genie-btn genie-btn-close" onClick={() => setShowSpeedRaceSoloOptions(false)}>CLOSE</button>
+          </div>
+        </div>
+      )}
+
+      {showSpeedRaceTeamOptions && (
+        <div className="genie-modal-container" onClick={() => setShowSpeedRaceTeamOptions(false)}>
+          <div className="genie-modal-content" onClick={(e) => e.stopPropagation()}>
+             <h2 className="genie-modal-head">🏆 SPEED RACE (TEAM)</h2>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', 'All Random')}>🎲 All Random</button>
+             {customVocabCount > 0 && <button className="genie-btn" style={{ color: '#48cfae', borderColor: '#48cfae' }} onClick={() => startGame('speedRaceTeam', 'Custom')}>⭐ Custom Vocab</button>}
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '동물 & 자연')}>🦁 Animals & Nature</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '음식 & 과일')}>🍔 Food & Fruits</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '사물 & 장소')}>🏫 Objects & Places</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '숫자')}>🔢 Numbers</button>
+             <button className="genie-btn genie-btn-close" onClick={() => setShowSpeedRaceTeamOptions(false)}>CLOSE</button>
+          </div>
+        </div>
+      )}
 
       {/* Host Judgment Modal */}
       {judgeData && (
@@ -752,7 +859,7 @@ function HostScreen() {
           background: 'rgba(6, 14, 32, 0.9)', backdropFilter: 'blur(8px)', zIndex: 9999,
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
         }}>
-          <div className="ow-panel neon-glow" style={{ textAlign: 'center', padding: '4rem', maxWidth: '700px', width: '90%' }}>
+          <div className="glassliquid-panel neon-glow" style={{ textAlign: 'center', padding: '4rem', maxWidth: '700px', width: '90%' }}>
             <h2 className="headline-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0' }}>APPROVAL REQUIRED</h2>
             <div className="body-md" style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>
               <strong style={{ color: 'var(--ow-secondary)' }}>{judgeData.nickname}</strong> 님의 답변:

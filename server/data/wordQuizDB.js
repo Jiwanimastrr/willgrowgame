@@ -205,7 +205,28 @@ const wordQuizDB = [
   { id: 'jp47', category: '직업 & 인간', answer: 'lawyer', meaning: '변호사' },
   { id: 'jp48', category: '직업 & 인간', answer: 'builder', meaning: '건축가/목수' },
   { id: 'jp49', category: '직업 & 인간', answer: 'tailor', meaning: '재단사' },
-  { id: 'jp50', category: '직업 & 인간', answer: 'barber', meaning: '이발사' }
+  { id: 'jp50', category: '직업 & 인간', answer: 'barber', meaning: '이발사' },
+  // ==== 5. 숫자 (Numbers) ====
+  { id: 'num1', category: '숫자', answer: 'one', meaning: '1' },
+  { id: 'num2', category: '숫자', answer: 'two', meaning: '2' },
+  { id: 'num3', category: '숫자', answer: 'three', meaning: '3' },
+  { id: 'num4', category: '숫자', answer: 'four', meaning: '4' },
+  { id: 'num5', category: '숫자', answer: 'five', meaning: '5' },
+  { id: 'num6', category: '숫자', answer: 'six', meaning: '6' },
+  { id: 'num7', category: '숫자', answer: 'seven', meaning: '7' },
+  { id: 'num8', category: '숫자', answer: 'eight', meaning: '8' },
+  { id: 'num9', category: '숫자', answer: 'nine', meaning: '9' },
+  { id: 'num10', category: '숫자', answer: 'ten', meaning: '10' },
+  { id: 'num20', category: '숫자', answer: 'twenty', meaning: '20' },
+  { id: 'num30', category: '숫자', answer: 'thirty', meaning: '30' },
+  { id: 'num40', category: '숫자', answer: 'forty', meaning: '40' },
+  { id: 'num50', category: '숫자', answer: 'fifty', meaning: '50' },
+  { id: 'num60', category: '숫자', answer: 'sixty', meaning: '60' },
+  { id: 'num70', category: '숫자', answer: 'seventy', meaning: '70' },
+  { id: 'num80', category: '숫자', answer: 'eighty', meaning: '80' },
+  { id: 'num90', category: '숫자', answer: 'ninety', meaning: '90' },
+  { id: 'num100', category: '숫자', answer: 'one hundred', meaning: '100' },
+  { id: 'num1000', category: '숫자', answer: 'one thousand', meaning: '1000' }
 ];
 
 module.exports = wordQuizDB;

@@ -3,7 +3,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const irregularVerbDB = require('./data/irregularVerbDB');
+
 const app = express();
 app.use(cors());
 app.use(express.json()); // JSON 바디 파싱 추가
@@ -160,25 +160,25 @@ io.on('connection', (socket) => {
   });
 
   // 3. 게임 시작 (Host)
-  socket.on('startGame', ({ pin, gameMode, category }) => {
+  socket.on('startGame', ({ pin, gameMode, category, winningScore }) => {
     const room = rooms[pin];
     if (room && room.host === socket.id) {
+      room.players.forEach(p => p.score = 0);
       room.gameState = gameMode;
       if (category) {
         room.quizCategory = category === 'All' ? null : category;
       }
       io.to(pin).emit('gameStarted', { gameMode });
       console.log(`🎮 Game ${gameMode} started in room ${pin} (Cat: ${category})`);
-
-      // 1번 게임: 단어 퀴즈
+      
       if (gameMode === 'wordQuiz') {
-        room.players.forEach(p => p.score = 0);
+        room.wordQuizWinningScore = winningScore || 100;
         io.to(pin).emit('playersUpdated', room.players);
         setTimeout(() => emitNextWordQuiz(pin, room), 1000);
       }
-      // 2번 게임: 문장 퍼즐
+      // 2번 게임: 문장 퍼즐 (Sentence Race)
       else if (gameMode === 'sentencePuzzle') {
-        setTimeout(() => emitNextSentencePuzzle(pin, room), 1000);
+        setTimeout(() => startSentenceRace(pin, room), 1000);
       }
       // 3번 게임: 끝말잇기
       else if (gameMode === 'wordChain') {
@@ -205,9 +205,7 @@ io.on('connection', (socket) => {
         startSpeedRace(pin, room, 'team');
       }
       // 9번 게임: 불규칙동사 스피드게임 (타이핑)
-      else if (gameMode === 'irregularVerbRace') {
-        startIrregularVerbRace(pin, room);
-      }
+
     }
   });
 
@@ -248,17 +246,56 @@ io.on('connection', (socket) => {
     });
   }
 
-  function emitNextSentencePuzzle(pin, room) {
-    const question = sentenceDB[Math.floor(Math.random() * sentenceDB.length)];
-    room.currentQuestion = question;
-    const tokens = question.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
-    const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
+  function startSentenceRace(pin, room) {
+    const shuffledDB = [...sentenceDB].sort(() => 0.5 - Math.random());
+    const selectedSentences = shuffledDB.slice(0, 20);
 
-    io.to(room.host).emit('hostNewPuzzle', { meaning: question.meaning, sentence: question.sentence });
+    room.sentenceRace = {
+      sentences: selectedSentences,
+      isActive: true,
+      timeRemaining: 180, // 3 minutes limit
+      playerProgress: {},
+      finishers: []
+    };
+
+    room.players.forEach(p => {
+      room.sentenceRace.playerProgress[p.id] = 0;
+      p.score = 0;
+    });
+    
+    io.to(pin).emit('playersUpdated', room.players);
+    io.to(room.host).emit('sentenceRaceStarted', { totalSentences: 20 });
     
     room.players.forEach(p => {
-      io.to(p.id).emit('playerNewPuzzle', { tokens: shuffledTokens });
+      const firstQ = selectedSentences[0];
+      const tokens = firstQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
+      const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
+      
+      io.to(p.id).emit('playerNewPuzzle', { tokens: shuffledTokens, index: 0, total: 20 });
     });
+
+    if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
+
+    room.sentenceRaceTimer = setInterval(() => {
+      if (!room || room.gameState !== 'sentencePuzzle' || !room.sentenceRace.isActive) {
+        clearInterval(room.sentenceRaceTimer);
+        return;
+      }
+      room.sentenceRace.timeRemaining -= 1;
+      
+      const sortedPlayers = [...room.players].sort((a,b) => b.score - a.score);
+      io.to(pin).emit('sentenceRaceState', {
+        timeRemaining: room.sentenceRace.timeRemaining,
+        leaderboard: sortedPlayers.slice(0, 5)
+      });
+
+      if (room.sentenceRace.timeRemaining <= 0) {
+        clearInterval(room.sentenceRaceTimer);
+        room.sentenceRace.isActive = false;
+        const winner = sortedPlayers[0];
+        io.to(pin).emit('puzzleCorrectAnswer', { winnerId: winner?.id, winnerNickname: winner?.nickname || 'TIME UP' });
+      }
+    }, 1000);
   }
 
   // 끝말잇기 게임 상태 시작
@@ -459,72 +496,106 @@ io.on('connection', (socket) => {
     }
   });
 
-  // ==== 6. 스펠링 헌터 ====
+  // ==== 6. 스펠링 헌터 (서바이벌 타이핑 방식) ====
   function startSpellingHunter(pin, room) {
-    if (room.hunterTimer) clearInterval(room.hunterTimer);
+    if (room.hunterTimer) clearTimeout(room.hunterTimer);
     
+    // 호스트가 선택한 카테고리에 맞는 단어 소스 준비 
+    let sourceDB = wordQuizDB;
+    if (room.quizCategory === 'Custom' && room.customWordDB && room.customWordDB.length >= 4) {
+      sourceDB = room.customWordDB;
+    } else if (room.quizCategory && room.quizCategory !== 'All' && room.quizCategory !== 'Custom') {
+      sourceDB = wordQuizDB.filter(w => w.category === room.quizCategory);
+      if (!sourceDB || sourceDB.length < 4) sourceDB = wordQuizDB; // fallback
+    }
+
     room.hunterGame = {
-      timeRemaining: 60, // 60초간 진행
-      isActive: true
+      isActive: true,
+      alivePlayers: room.players.map(p => p.id), // 살아남은 플레이어 ID 목록
+      spawnInterval: 3000,   // 처음엔 3초 간격으로 스폰
+      fallDuration: 12000,   // 처음엔 바닥에 닿기까지 12초
+      wordCount: 0,
     };
     
-    let dbToSend = spellingDB;
-    if (room.customWordDB && room.customWordDB.length > 0) {
-      dbToSend = room.customWordDB.map(w => {
-         const correct = w.answer.toLowerCase();
-         // 대충 모음 등 하나 치환하거나 글자 하나 빼서 3가지 오답 만들기
-         const wrong = Array(3).fill(0).map((_, i) => {
-             const idx = Math.floor(Math.random() * correct.length);
-             const arr = correct.split('');
-             if (i === 0) arr.splice(idx, 1); // 문자 하나 빼기
-             else if (i === 1) arr.splice(idx, 0, arr[idx]); // 문자 중복
-             else arr[idx] = ['a','e','i','o','u'][Math.floor(Math.random()*5)]; // 모음 덮어쓰기
-             return arr.join('');
-         }).filter(fake => fake !== correct); // 우연히 정답과 같아지면 방지
-         
-         // 3개가 안되면 기본 대충 넣기
-         while(wrong.length < 3) {
-            wrong.push(correct + "x" + Math.floor(Math.random()*10));
-         }
-         return { correct, wrong };
-      });
-    }
+    // 시작 상태 전송 (살아있는 플레이어, 스피드 정보 등)
+    io.to(pin).emit('hunterState', { 
+       isActive: true, 
+       aliveCount: room.hunterGame.alivePlayers.length,
+       spawnInterval: room.hunterGame.spawnInterval,
+       fallDuration: room.hunterGame.fallDuration
+    });
     
-    io.to(pin).emit('hunterState', { timeRemaining: 60, isActive: true, words: dbToSend });
+    const spawnLoop = () => {
+       if (!room || room.gameState !== 'spellingHunter' || !room.hunterGame.isActive) return;
+       
+       const wordItem = sourceDB[Math.floor(Math.random() * sourceDB.length)];
+       const id = Date.now() + Math.random().toString(36).substr(2, 5); // 고유 단어 ID
+       
+       io.to(pin).emit('hunterSpawnWord', {
+          id,
+          text: wordItem.answer.toLowerCase(),
+          xPosition: Math.floor(Math.random() * 80) + 10, // 10% ~ 90% 사이의 X 좌표
+          duration: room.hunterGame.fallDuration
+       });
+       
+       room.hunterGame.wordCount++;
+       
+       // 10단어 생성될 때마다 난이도 증가 (속도 빨라짐)
+       if (room.hunterGame.wordCount % 10 === 0) {
+           room.hunterGame.spawnInterval = Math.max(600, room.hunterGame.spawnInterval * 0.85); // 생성 주기 짧아짐
+           room.hunterGame.fallDuration = Math.max(3000, room.hunterGame.fallDuration * 0.85); // 떨어지는 시간 짧아짐
+           io.to(pin).emit('hunterSpeedUp', { 
+               spawnInterval: room.hunterGame.spawnInterval,
+               fallDuration: room.hunterGame.fallDuration,
+               level: Math.floor(room.hunterGame.wordCount / 10) + 1
+           });
+       }
+       
+       room.hunterTimer = setTimeout(spawnLoop, room.hunterGame.spawnInterval);
+    };
     
-    room.hunterTimer = setInterval(() => {
-      if (!room || room.gameState !== 'spellingHunter') {
-        clearInterval(room.hunterTimer);
-        return;
-      }
-      
-      room.hunterGame.timeRemaining -= 1;
-      
-      if (room.hunterGame.timeRemaining <= 0) {
-        room.hunterGame.isActive = false;
-        clearInterval(room.hunterTimer);
-        io.to(pin).emit('hunterState', { timeRemaining: 0, isActive: false });
-        io.to(pin).emit('playersUpdated', room.players); // 최종 리더보드 전송
-      } else {
-        if (room.hunterGame.timeRemaining % 3 === 0) {
-          // 3초마다 타이머 및 실시간 리더보드 동기화 (네트워크 플러딩 억제)
-          io.to(pin).emit('hunterState', { timeRemaining: room.hunterGame.timeRemaining, isActive: true });
-          io.to(pin).emit('playersUpdated', room.players);
-        }
-      }
-    }, 1000);
+    // 게임 시작 시 초기 딜레이 (애니메이션, 로딩 감안) 3초 후 첫 시작
+    room.hunterTimer = setTimeout(spawnLoop, 3000); 
   }
 
-  // 플레이어가 스펠링을 맞춰서 점수 획득 (다중 접속 시 부하를 막기 위해 playersUpdated는 즉각 emit하지 않음)
+  // 플레이어가 단어를 타이핑해서 맞췄을 때
   socket.on('hunterScore', ({ pin, points }) => {
     const room = rooms[pin];
     if (room && room.gameState === 'spellingHunter' && room.hunterGame && room.hunterGame.isActive) {
       const player = room.players.find(p => p.id === socket.id);
       if (player) {
         player.score += points;
-        // 클라이언트 단의 개별 반응(효과음/피드백)을 위해 본인에게만 업데이트 알림
         io.to(socket.id).emit('myScoreUpdated', { score: player.score });
+        // 실시간 서버 랭킹 반영 (네트워크 플러딩을 막기 위해 가끔 쏴주는 것이 좋으나 일단 전송)
+        io.to(pin).emit('playersUpdated', room.players);
       }
+    }
+  });
+
+  // 플레이어의 목숨(HP)이 0이 되어 사망했을 때
+  socket.on('hunterPlayerDied', ({ pin }) => {
+    const room = rooms[pin];
+    if (room && room.gameState === 'spellingHunter' && room.hunterGame && room.hunterGame.isActive) {
+       room.hunterGame.alivePlayers = room.hunterGame.alivePlayers.filter(id => id !== socket.id);
+       
+       io.to(pin).emit('hunterPlayerDied', { id: socket.id, aliveCount: room.hunterGame.alivePlayers.length });
+       
+       // 최후의 1인이거나 모두 전멸했을 경우 게임 오버
+       if (room.hunterGame.alivePlayers.length <= 1) {
+          room.hunterGame.isActive = false;
+          if (room.hunterTimer) clearTimeout(room.hunterTimer);
+          
+          let winner = null;
+          if (room.hunterGame.alivePlayers.length === 1) {
+              const survivor = room.players.find(p => p.id === room.hunterGame.alivePlayers[0]);
+              winner = survivor ? survivor.nickname : "UNKNOWN";
+          } else {
+              winner = "DRAW (All Died)";
+          }
+          
+          io.to(pin).emit('hunterGameOver', { winner });
+          io.to(pin).emit('playersUpdated', room.players); // 최종 스코어 전송
+       }
     }
   });
 
@@ -538,10 +609,22 @@ io.on('connection', (socket) => {
         if (player) {
           player.score += 10;
           io.to(pin).emit('playersUpdated', room.players); // 점수 업데이트
-          io.to(pin).emit('correctAnswer', { winnerId: socket.id, winnerNickname: player.nickname });
           
-          // 문제 초기화
-          room.currentQuestion = null;
+          if (room.wordQuizWinningScore && player.score >= room.wordQuizWinningScore) {
+            io.to(pin).emit('correctAnswer', { winnerId: socket.id, winnerNickname: player.nickname, ended: true, winner: player.nickname });
+            room.currentQuestion = null;
+          } else {
+            io.to(pin).emit('correctAnswer', { winnerId: socket.id, winnerNickname: player.nickname, ended: false });
+            // 문제 초기화
+            room.currentQuestion = null;
+
+            // 자동으로 다음 문제 출제 (3초 대기)
+            setTimeout(() => {
+              if (rooms[pin] && rooms[pin].gameState === 'wordQuiz') {
+                emitNextWordQuiz(pin, rooms[pin]);
+              }
+            }, 3000);
+          }
         }
       }
     }
@@ -550,15 +633,55 @@ io.on('connection', (socket) => {
   // 5. 문장 퍼즐 정답 제출 (Player)
   socket.on('submitSentence', ({ pin, submittedSentence }) => {
     const room = rooms[pin];
-    if (room && room.gameState === 'sentencePuzzle' && room.currentQuestion) {
-      if (submittedSentence === room.currentQuestion.sentence) {
+    if (room && room.gameState === 'sentencePuzzle' && room.sentenceRace?.isActive) {
+      const pId = socket.id;
+      const progressIndex = room.sentenceRace.playerProgress[pId];
+      if (progressIndex === undefined) return;
+
+      const currentQ = room.sentenceRace.sentences[progressIndex];
+      if (!currentQ) return; 
+
+      if (submittedSentence === currentQ.sentence) {
         const player = room.players.find(p => p.id === socket.id);
         if (player) {
-          player.score += 20;
-          io.to(pin).emit('playersUpdated', room.players);
-          io.to(pin).emit('puzzleCorrectAnswer', { winnerId: socket.id, winnerNickname: player.nickname });
-          room.currentQuestion = null;
+          player.score += 10;
+          room.sentenceRace.playerProgress[pId] = progressIndex + 1;
+          
+          const nextIndex = progressIndex + 1;
+          if (nextIndex >= 20) {
+            player.score += 50; 
+            io.to(pId).emit('sentenceRaceFinished');
+            room.sentenceRace.finishers.push(player);
+            
+            const sortedPlayers = [...room.players].sort((a,b) => b.score - a.score);
+            io.to(pin).emit('playersUpdated', room.players);
+
+            if (room.sentenceRace.finishers.length >= Math.min(3, room.players.length)) {
+               room.sentenceRace.isActive = false;
+               if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
+               
+               io.to(pin).emit('puzzleCorrectAnswer', { 
+                 winnerId: sortedPlayers[0].id, 
+                 winnerNickname: sortedPlayers[0].nickname,
+                 finalLeaderboard: sortedPlayers
+               });
+            } else {
+               io.to(pin).emit('sentenceRaceState', {
+                 timeRemaining: room.sentenceRace.timeRemaining,
+                 leaderboard: sortedPlayers.slice(0, 5)
+               });
+            }
+          } else {
+            const nextQ = room.sentenceRace.sentences[nextIndex];
+            const tokens = nextQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
+            const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
+            io.to(pId).emit('playerNewPuzzle', { tokens: shuffledTokens, index: nextIndex, total: 20 });
+            io.to(pId).emit('sentenceRaceCorrect');
+            io.to(pin).emit('playersUpdated', room.players); // 리더보드용 실시간 점수갱신
+          }
         }
+      } else {
+        io.to(socket.id).emit('sentenceRaceWrong');
       }
     }
   });
@@ -639,193 +762,6 @@ io.on('connection', (socket) => {
   });
 
   // ==== 7, 8. 스피드 레이스 (개인전 / 팀전) ====
-  /* ========== 불규칙동사 스피드게임 핵심 로직 ========== */
-
-  function startIrregularVerbRace(pin, room) {
-    if (room.verbTimer) clearInterval(room.verbTimer);
-
-    room.verbGame = {
-      timeRemaining: 60,
-      isActive: true,
-    };
-
-    room.players.forEach(p => {
-      p.score = 0;
-      p.currentVerbAnswer = null;
-    });
-
-    io.to(pin).emit('playersUpdated', room.players);
-    io.to(pin).emit('verbState', {
-      timeRemaining: room.verbGame.timeRemaining,
-      isActive: room.verbGame.isActive,
-      playersInfo: room.players
-    });
-
-    room.players.forEach(p => {
-      emitVerbQuestion(pin, p.id);
-    });
-
-    room.verbTimer = setInterval(() => {
-      if (!room || !room.verbGame || !room.verbGame.isActive) {
-        clearInterval(room.verbTimer);
-        return;
-      }
-      room.verbGame.timeRemaining -= 1;
-      
-      io.to(pin).emit('verbState', {
-        timeRemaining: room.verbGame.timeRemaining,
-        isActive: room.verbGame.isActive,
-        playersInfo: room.players
-      });
-
-      if (room.verbGame.timeRemaining <= 0) {
-        clearInterval(room.verbTimer);
-        room.verbGame.isActive = false;
-        io.to(pin).emit('verbState', {
-          timeRemaining: 0,
-          isActive: false,
-          playersInfo: room.players
-        });
-      }
-    }, 1000);
-  }
-
-  function emitVerbQuestion(pin, playerId) {
-    const room = rooms[pin];
-    if (room && room.gameState === 'irregularVerbRace' && room.verbGame && room.verbGame.isActive) {
-      const verb = irregularVerbDB[Math.floor(Math.random() * irregularVerbDB.length)];
-      const isPast = Math.random() > 0.5;
-      const targetForm = isPast ? '과거형' : '과거분사형(p.p.)';
-      const answer = isPast ? verb.past : verb.pp;
-      
-      const player = room.players.find(p => p.id === playerId);
-      if (player) {
-         player.currentVerbAnswer = answer;
-         io.to(playerId).emit('verbNewQuestion', { meaning: `${verb.base} (${verb.meaning})`, targetForm });
-      }
-    }
-  }
-
-  socket.on('submitVerbAnswer', ({ pin, answer }) => {
-    const room = rooms[pin];
-    if (room && room.gameState === 'irregularVerbRace' && room.verbGame && room.verbGame.isActive) {
-      const player = room.players.find(p => p.id === socket.id);
-      if (player && player.currentVerbAnswer) {
-        // 정답 판정 (소문자 변환 통일)
-        const normalizedAnswer = answer.trim().toLowerCase();
-        // was/were 같이 슬래시로 구분된 여러개의 정답 처리
-        const possibleAnswers = player.currentVerbAnswer.toLowerCase().split('/').map(w => w.trim());
-        
-        if (possibleAnswers.includes(normalizedAnswer)) {
-          player.score += 1;
-          io.to(socket.id).emit('verbCorrectAnswer');
-        } else {
-          // 오답 시 점수 깎기
-          player.score = Math.max(0, player.score - 1);
-          io.to(socket.id).emit('verbWrongAnswer');
-        }
-        
-        // 정답 오답 상관없이 새로운 문제 출제
-        player.currentVerbAnswer = null;
-        io.to(pin).emit('playersUpdated', room.players); // 호스트 리더보드 용
-        setTimeout(() => {
-          if (room.verbGame.isActive) emitVerbQuestion(pin, socket.id);
-        }, 500); // UI 이펙트(빨강/초록 깜박임)를 볼 수 있도록 약간의 딜레이
-      }
-    }
-  });
-
-  /* ========== 불규칙동사 스피드게임 핵심 로직 (타이핑) ========== */
-
-  function startIrregularVerbRace(pin, room) {
-    if (room.verbTimer) clearInterval(room.verbTimer);
-
-    room.verbGame = {
-      timeRemaining: 60,
-      isActive: true,
-    };
-
-    room.players.forEach(p => {
-      p.score = 0;
-      p.currentVerbAnswer = null;
-    });
-
-    io.to(pin).emit('playersUpdated', room.players);
-    io.to(pin).emit('verbState', {
-      timeRemaining: room.verbGame.timeRemaining,
-      isActive: room.verbGame.isActive,
-      playersInfo: room.players
-    });
-
-    room.players.forEach(p => {
-      emitVerbQuestion(pin, p.id);
-    });
-
-    room.verbTimer = setInterval(() => {
-      if (!room || !room.verbGame || !room.verbGame.isActive) {
-        clearInterval(room.verbTimer);
-        return;
-      }
-      room.verbGame.timeRemaining -= 1;
-      
-      io.to(pin).emit('verbState', {
-        timeRemaining: room.verbGame.timeRemaining,
-        isActive: room.verbGame.isActive,
-        playersInfo: room.players
-      });
-
-      if (room.verbGame.timeRemaining <= 0) {
-        clearInterval(room.verbTimer);
-        room.verbGame.isActive = false;
-        io.to(pin).emit('verbState', {
-          timeRemaining: 0,
-          isActive: false,
-          playersInfo: room.players
-        });
-      }
-    }, 1000);
-  }
-
-  function emitVerbQuestion(pin, playerId) {
-    const room = rooms[pin];
-    if (room && room.gameState === 'irregularVerbRace' && room.verbGame && room.verbGame.isActive) {
-      const verb = irregularVerbDB[Math.floor(Math.random() * irregularVerbDB.length)];
-      const isPast = Math.random() > 0.5;
-      const targetForm = isPast ? '과거형' : '과거분사형(p.p.)';
-      const answer = isPast ? verb.past : verb.pp;
-      
-      const player = room.players.find(p => p.id === playerId);
-      if (player) {
-         player.currentVerbAnswer = answer;
-         io.to(playerId).emit('verbNewQuestion', { meaning: `${verb.base} (${verb.meaning})`, targetForm });
-      }
-    }
-  }
-
-  socket.on('submitVerbAnswer', ({ pin, answer }) => {
-    const room = rooms[pin];
-    if (room && room.gameState === 'irregularVerbRace' && room.verbGame && room.verbGame.isActive) {
-      const player = room.players.find(p => p.id === socket.id);
-      if (player && player.currentVerbAnswer) {
-        const normalizedAnswer = answer.trim().toLowerCase();
-        const possibleAnswers = player.currentVerbAnswer.toLowerCase().split('/').map(w => w.trim());
-        
-        if (possibleAnswers.includes(normalizedAnswer)) {
-          player.score += 1;
-          io.to(socket.id).emit('verbCorrectAnswer');
-        } else {
-          player.score = Math.max(0, player.score - 1);
-          io.to(socket.id).emit('verbWrongAnswer');
-        }
-        
-        player.currentVerbAnswer = null;
-        io.to(pin).emit('playersUpdated', room.players);
-        setTimeout(() => {
-          if (room.verbGame.isActive) emitVerbQuestion(pin, socket.id);
-        }, 500);
-      }
-    }
-  });
 
   function startSpeedRace(pin, room, type) {
     if (room.raceTimer) clearInterval(room.raceTimer);
@@ -916,8 +852,27 @@ io.on('connection', (socket) => {
   function emitRaceQuestion(pin, playerId) {
     const room = rooms[pin];
     if (room && (room.gameState === 'speedRaceIndividual' || room.gameState === 'speedRaceTeam') && room.raceGame && room.raceGame.isActive) {
-      const question = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
-      const incorrectOptions = wordQuizDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+      
+      let filteredDB = wordQuizDB;
+      if (room.quizCategory === 'Custom' && room.customWordDB && room.customWordDB.length >= 4) {
+        filteredDB = room.customWordDB;
+      } else if (room.quizCategory && room.quizCategory !== 'All Random' && room.quizCategory !== 'All') {
+        filteredDB = wordQuizDB.filter(q => q.category === room.quizCategory);
+      }
+      
+      if (!filteredDB || filteredDB.length === 0) filteredDB = wordQuizDB;
+
+      const question = filteredDB[Math.floor(Math.random() * filteredDB.length)];
+      const incorrectOptions = filteredDB.filter(q => q.id !== question.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+      
+      // 만약 같은 카테고리에 오답 선택지가 3개 미만이면 전체 DB에서 보충
+      while (incorrectOptions.length < 3) {
+        const extraQuestion = wordQuizDB[Math.floor(Math.random() * wordQuizDB.length)];
+        if (extraQuestion.id !== question.id && !incorrectOptions.find(q => q.id === extraQuestion.id)) {
+          incorrectOptions.push(extraQuestion);
+        }
+      }
+
       const options = [question, ...incorrectOptions].map(q => q.answer).sort(() => 0.5 - Math.random());
       
       const player = room.players.find(p => p.id === playerId);

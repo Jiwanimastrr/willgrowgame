@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 import { Check, X } from 'lucide-react';
+import Confetti from 'react-confetti';
 
 function SpeedRacePlayer({ pin, nickname }) {
   const [question, setQuestion] = useState(null);
@@ -51,11 +52,14 @@ function SpeedRacePlayer({ pin, nickname }) {
   if (raceData && !raceData.isActive) {
     return (
       <div className="animate-enter" style={{ padding: '2rem', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <h1 className="display-lg neon-glow" style={{ color: 'var(--ow-primary)', marginBottom: '2rem' }}>RACE FINISHED</h1>
-        <h2 className="headline-lg" style={{ color: 'var(--on-surface)' }}>내 점수: {playerInfo?.score || 0}점</h2>
-        {raceData.type === 'team' && playerInfo?.team && (
-           <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginTop: '1rem' }}>우리팀({playerInfo.team}): {raceData.teams[playerInfo.team]}점</h2>
-        )}
+        <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={300} />
+        <h1 className="display-lg ultimate-win" style={{ color: 'var(--ow-primary)', marginBottom: '2rem', textShadow: '0 0 20px var(--ow-primary)', fontSize: '5rem' }}>RACE FINISHED</h1>
+        <div className="sci-fi-terminal" style={{ padding: '3rem', borderRadius: '1rem', display: 'inline-block', margin: '0 auto' }}>
+          <h2 className="headline-lg" style={{ color: 'var(--on-surface)', fontSize: '3rem' }}>SCORE: {playerInfo?.score || 0} PTS</h2>
+          {raceData.type === 'team' && playerInfo?.team && (
+             <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginTop: '2rem', fontSize: '2.5rem' }}>[{playerInfo.team} TEAM]: {raceData.teams[playerInfo.team]} PTS</h2>
+          )}
+        </div>
       </div>
     );
   }
@@ -82,47 +86,53 @@ function SpeedRacePlayer({ pin, nickname }) {
       {question ? (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
           
-          {feedback && (
-             <div style={{
-                position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center',
-                width: '180px', height: '180px', borderRadius: '50%',
-                background: feedback === 'correct' ? 'rgba(197, 255, 201, 0.9)' : 'rgba(255, 110, 132, 0.9)', /* tertiary or error */
-                boxShadow: feedback === 'correct' ? '0 0 40px var(--ow-primary-dim)' : '0 0 40px var(--ow-error)',
-                animation: 'pulse-glow 0.5s ease-out forwards'
-             }}>
-                {feedback === 'correct' ? <Check size={100} color="var(--bg-base)" /> : <X size={100} color="var(--bg-base)" />}
-             </div>
+          {/* 화면 전체 피드백 오버레이 */}
+          {feedback === 'correct' && (
+            <div className="feedback-overlay anim-correct">
+              <h1 style={{ fontSize: '8rem', color: '#33ff33', textShadow: '0 0 30px #33ff33' }}>HIT</h1>
+            </div>
+          )}
+          {feedback === 'wrong' && (
+            <div className="feedback-overlay anim-wrong">
+              <h1 style={{ fontSize: '6rem', color: '#ff3333', textShadow: '0 0 30px #ff3333', textAlign: 'center' }}>MISS</h1>
+            </div>
           )}
 
-          <div className="ow-panel speed-thrust" style={{ textAlign: 'center', marginBottom: '3rem', padding: '3rem 2rem' }}>
-            <h2 className="display-lg" style={{ color: 'var(--on-surface)', margin: 0, textShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+          <div className="sci-fi-terminal speed-thrust" style={{ textAlign: 'center', marginBottom: '3rem', padding: '3rem 2rem', borderRadius: '1rem' }}>
+            <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0, textShadow: '0 0 15px currentColor' }}>
               {question.meaning}
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem', zIndex: 10 }}>
             {question.options.map((opt, idx) => {
-              // Create variants for modern look
               const buttonClass = idx === 0 || idx === 3 ? 'ow-btn' : 'ow-btn-secondary';
-              
               return (
                 <button
                   key={idx}
-                  className={buttonClass}
+                  className={`${buttonClass} huge-hitbox`}
                   style={{ 
-                    padding: '3rem 1rem', 
-                    fontSize: '1.5rem', 
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
                     opacity: feedback ? 0.7 : 1,
                     pointerEvents: feedback ? 'none' : 'auto',
-                    minHeight: '120px'
+                    padding: '0.5rem',
+                    minHeight: '120px',
+                    borderRadius: '8px'
                   }}
                   onClick={() => handleAnswer(opt)}
                 >
-                  <span className="headline-lg" style={{ wordBreak: 'break-word', textAlign: 'center' }}>{opt}</span>
+                  <span style={{ 
+                    fontFamily: '"Pretendard", "Roboto", "Helvetica Neue", Arial, sans-serif', 
+                    fontWeight: 900, 
+                    textAlign: 'center', 
+                    fontSize: 'clamp(1.5rem, 6.5vw, 2.8rem)', 
+                    lineHeight: '1.3', 
+                    wordBreak: 'keep-all',
+                    color: '#ffffff',
+                    letterSpacing: '0px',
+                    textShadow: '2px 2px 5px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' 
+                  }}>
+                    {opt}
+                  </span>
                 </button>
               );
             })}
@@ -130,7 +140,7 @@ function SpeedRacePlayer({ pin, nickname }) {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-           <h2 className="headline-lg neon-glow" style={{ color: 'var(--on-surface-variant)' }}>Waiting for Question...</h2>
+           <h2 className="headline-lg pulse-wait-text" style={{ fontSize: '3rem' }}>AWAITING TARGETS...</h2>
         </div>
       )}
     </div>

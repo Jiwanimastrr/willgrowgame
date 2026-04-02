@@ -41,21 +41,34 @@ function WordQuizPlayer({ pin, nickname }) {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--ow-primary)', margin: '1rem 0' }}>WORD QUIZ CHAMPIONSHIP</h2>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1rem', position: 'relative' }}>
+      
+      {/* 화면 전체 피드백 오버레이 */}
+      {result === 'correct' && (
+        <div className="feedback-overlay anim-correct">
+          <h1 style={{ fontSize: '8rem', color: '#33ff33', textShadow: '0 0 30px #33ff33' }}>SUCCESS</h1>
+        </div>
+      )}
+      {result && result !== 'correct' && result !== 'waiting' && (
+        <div className="feedback-overlay anim-wrong">
+          <h1 style={{ fontSize: '6rem', color: '#ff3333', textShadow: '0 0 30px #ff3333', textAlign: 'center' }}>{result.toUpperCase()}</h1>
+        </div>
+      )}
+
+      <h2 style={{ fontSize: '2rem', textAlign: 'center', color: 'var(--ow-primary)', margin: '1rem 0', letterSpacing: '3px' }}>[ TERMINAL UPLINK ]</h2>
       
       {question ? (
-        <div className="ow-panel speed-thrust" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '1rem', background: 'var(--ow-surface)' }}>
+        <div className="sci-fi-terminal" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '1rem', borderRadius: '1rem' }}>
            {result ? (
-             <div style={{ textAlign: 'center' }}>
-               <h1 className="display-lg" style={{ fontSize: '4rem', margin: 0, color: result === 'correct' ? 'var(--ow-primary-dim)' : 'var(--ow-error)' }}>
-                 {result === 'correct' ? 'CORRECT!' : result === 'waiting' ? 'WAIT...' : result.toUpperCase()}
+             <div style={{ textAlign: 'center', zIndex: 10 }}>
+               <h1 className="display-lg" style={{ fontSize: '4rem', margin: 0, color: result === 'correct' ? 'var(--ow-success)' : 'var(--ow-error)' }}>
+                 {result === 'correct' ? 'ACCEPTED' : result === 'waiting' ? 'VERIFYING...' : 'FAILED'}
                </h1>
              </div>
            ) : (
-             <form onSubmit={handleAnswer} style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-               <h3 className="headline-lg" style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '3rem', color: 'var(--on-surface-variant)' }}>
-                 TYPE THE ANSWER!
+             <form onSubmit={handleAnswer} style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+               <h3 className="headline-lg" style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '3rem', color: 'var(--ow-secondary)', textTransform: 'uppercase' }}>
+                 INPUT REQUIRED
                </h3>
                
                <input 
@@ -66,35 +79,30 @@ function WordQuizPlayer({ pin, nickname }) {
                  autoComplete="off"
                  autoCorrect="off"
                  spellCheck="false"
+                 className="sci-fi-input"
                  style={{ 
                    width: '100%', 
-                   maxWidth: '400px',
-                   padding: '2rem', 
-                   fontSize: '3rem', 
-                   textAlign: 'center',
-                   background: 'rgba(0,0,0,0.5)',
-                   border: '2px solid var(--ow-primary)',
-                   color: 'var(--on-surface)',
-                   borderRadius: '1.5rem',
-                   marginBottom: '2rem',
-                   boxShadow: '0 0 20px rgba(0,0,0,0.3) inset'
+                   maxWidth: '500px',
+                   padding: '1rem', 
+                   fontSize: '4rem', 
+                   marginBottom: '3rem'
                  }} 
                />
 
                <button 
                  type="submit"
                  className="ow-btn neon-glow" 
-                 style={{ fontSize: '2.5rem', padding: '1.5rem 4rem', minWidth: '200px' }}
+                 style={{ fontSize: '2.5rem', padding: '1rem 4rem', minWidth: '250px' }}
                  disabled={!inputValue.trim()}
                >
-                 <span>SUBMIT</span>
+                 <span>TRANSMIT</span>
                </button>
              </form>
            )}
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <h1 className="display-lg" style={{ fontSize: '3rem', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>WAITING FOR QUESTION...</h1>
+          <h1 className="display-lg pulse-wait-text" style={{ fontSize: '3rem', textAlign: 'center' }}>WAITING FOR DATA...</h1>
         </div>
       )}
     </div>
