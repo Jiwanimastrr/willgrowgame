@@ -699,18 +699,18 @@ function HostScreen() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <button className="ow-btn ow-btn-secondary" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem' }} onClick={() => setShowWordQuizOptions(p => !p)}>
-                <span>Word Quiz</span> <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '1rem', opacity: 0.7 }}>카테고리 선택 ▼</span> <Play size={20} /></div>
+                <span>Word Quiz</span> <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '1rem', opacity: 0.7 }}>Select Category ▼</span> <Play size={20} /></div>
               </button>
               {showWordQuizOptions && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingLeft: '1rem', borderLeft: '2px solid var(--ow-primary)' }}>
-                  <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', 'All')}>🎲 무작위 전체</button>
+                  <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', 'All')}>🎲 All Random</button>
                   {customVocabCount > 0 && (
-                    <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start', '--ow-primary': '#48cfae' }} onClick={() => startGame('wordQuiz', 'Custom')}>⭐ 커스텀 단어장 (적용됨)</button>
+                    <button className="ow-btn" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start', '--ow-primary': '#48cfae' }} onClick={() => startGame('wordQuiz', 'Custom')}>⭐ Custom Vocab</button>
                   )}
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '동물 & 자연')}>🦁 동물 & 자연</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '음식 & 과일')}>🍔 음식 & 과일</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '사물 & 장소')}>🏫 사물 & 장소</button>
-                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '직업 & 인간')}>👨‍⚕️ 직업 & 인간</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '동물 & 자연')}>🦁 Animals & Nature</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '음식 & 과일')}>🍔 Food & Fruits</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '사물 & 장소')}>🏫 Objects & Places</button>
+                  <button className="ow-btn ow-btn-secondary" style={{ fontSize: '1.1rem', padding: '0.8rem', justifyContent: 'flex-start' }} onClick={() => startGame('wordQuiz', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
                 </div>
               )}
             </div>
