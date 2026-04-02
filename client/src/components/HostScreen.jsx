@@ -353,7 +353,9 @@ function HostScreen() {
                 <span className="headline-lg" style={{ color: 'var(--ow-primary)' }}>0 PLAYERS</span>
               )}
               {gameState !== 'lobby' && (
-                <img src="/willgrow_logo.png" alt="WillGrow Logo" className="logo" style={{ height: '40px', marginLeft: '2rem' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                <div style={{ marginLeft: '2rem', background: 'white', padding: '5px', borderRadius: '10px' }}>
+                  <QRCodeSVG value={joinUrl} size={60} />
+                </div>
               )}
             </div>
           </header>
