@@ -923,16 +923,18 @@ io.on('connection', (socket) => {
       });
     }
 
-    console.log(`🏁 Speed Race ${type} initialized for ${room.players.length} players`);
+    console.log(`🏁 Speed Race ${type} initialized for ${room.players.length} players, pin=${pin}`);
 
     io.to(pin).emit('playersUpdated', room.players);
-    io.to(pin).emit('raceState', {
+    const raceStatePayload = {
       type: room.raceGame.type,
       timeRemaining: room.raceGame.timeRemaining,
       isActive: room.raceGame.isActive,
       teams: room.raceGame.teams,
       playersInfo: room.players
-    });
+    };
+    console.log(`📡 Emitting initial raceState to room ${pin}`);
+    io.to(pin).emit('raceState', raceStatePayload);
 
     // 각자에게 독립적인 첫 문제 전송 (약간의 딜레이)
     setTimeout(() => {
@@ -972,13 +974,14 @@ io.on('connection', (socket) => {
         });
         io.to(pin).emit('playersUpdated', room.players);
       } else {
-        // 타이머 및 상태 갱신
-        if (room.raceGame.timeRemaining % 2 === 0 || room.raceGame.timeRemaining <= 5) {
-          io.to(pin).emit('raceState', {
-             ...room.raceGame,
-             playersInfo: room.players
-          });
-        }
+        // 매초 상태 갱신
+        io.to(pin).emit('raceState', {
+           type: room.raceGame.type,
+           timeRemaining: room.raceGame.timeRemaining,
+           isActive: room.raceGame.isActive,
+           teams: room.raceGame.teams,
+           playersInfo: room.players
+        });
       }
     }, 1000);
   }
