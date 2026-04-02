@@ -569,45 +569,45 @@ function HostScreen() {
                {gameState === 'wordChain' && chainData ? (
                  <div style={{ 
                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                   width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', borderRadius: '30px', padding: '4rem',
+                   width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', borderRadius: '30px', padding: '2rem',
                    boxShadow: '0 0 50px rgba(0,0,0,0.5)',backdropFilter: 'blur(10px)'
                  }}>
-                   <h3 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0, fontSize: '5rem', textShadow: '0 0 30px var(--ow-primary)' }}>WORD CHAIN SURVIVAL</h3>
+                   <h3 className="display-lg" style={{ color: 'var(--ow-primary)', margin: 0, fontSize: '3rem', textShadow: '0 0 30px var(--ow-primary)' }}>WORD CHAIN SURVIVAL</h3>
                    
                    {chainGameOver ? (
-                     <div className="surface-card neon-glow" style={{ marginTop: '4rem', textAlign: 'center', padding: '4rem' }}>
-                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 2rem 0', fontSize: '6rem' }}>GAME OVER</h2>
-                       <h3 className="display-md" style={{ margin: '0 0 4rem 0', color: 'var(--ow-primary-dim)', fontSize: '4rem' }}>WINNER: {chainGameOver}</h3>
-                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn" style={{ fontSize: '2.5rem', padding: '1.5rem 4rem' }}>
+                     <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center', padding: '3rem' }}>
+                       <h2 className="display-lg" style={{ color: 'var(--ow-primary)', margin: '0 0 1rem 0', fontSize: '4rem' }}>GAME OVER</h2>
+                       <h3 className="display-md" style={{ margin: '0 0 2rem 0', color: 'var(--ow-primary-dim)', fontSize: '2.5rem' }}>WINNER: {chainGameOver}</h3>
+                       <button onClick={() => socket.emit('nextQuestion', { pin })} className="ow-btn" style={{ fontSize: '2rem', padding: '1rem 3rem' }}>
                          PLAY AGAIN
                        </button>
                      </div>
                    ) : (
-                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '3rem' }}>
-                       <div className="display-lg" style={{ fontSize: '5rem', color: chainData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '1.5rem' }}>
+                       <div className="display-lg" style={{ fontSize: '3.5rem', color: chainData.timeRemaining <= 5 ? 'var(--ow-error)' : 'var(--ow-secondary)', textShadow: '0 0 20px currentColor' }}>
                          {chainData.timeRemaining}s
                        </div>
                        
-                       <div style={{ display: 'flex', gap: '2rem', overflowX: 'auto', padding: '2rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap', marginTop: '3rem' }}>
-                         {chainData.chain.slice(-5).map((word, idx, arr) => {
+                       <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', padding: '1rem', width: '100%', justifyContent: 'center', flexWrap: 'wrap', marginTop: '1.5rem' }}>
+                         {chainData.chain.slice(-8).map((word, idx, arr) => {
                            const isLast = idx === arr.length - 1;
                            return (
                              <div key={`${chainData.chain.length - arr.length + idx}-${word}`} className="glassliquid-panel" style={{ 
-                               padding: '2rem 4rem', 
+                               padding: '0.8rem 2rem', 
                                borderColor: isLast ? 'var(--ow-primary)' : 'rgba(255,255,255,0.1)',
                                background: isLast ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.3)',
-                               boxShadow: isLast ? '0 0 30px rgba(204,151,255,0.6)' : 'none',
+                               boxShadow: isLast ? '0 0 20px rgba(204,151,255,0.6)' : 'none',
                                animation: 'fadeIn 0.3s ease-out'
                              }}>
-                               <span className="display-md" style={{ fontSize: '4.5rem', letterSpacing: '4px' }}>{word.toUpperCase()}</span>
+                               <span className="display-md" style={{ fontSize: '2.5rem', letterSpacing: '2px' }}>{word.toUpperCase()}</span>
                              </div>
                            );
                          })}
                        </div>
 
-                       <div className="glassliquid-panel" style={{ marginTop: '4rem', display: 'flex', alignItems: 'center', gap: '2rem', padding: '1.5rem 4rem' }}>
-                         <span className="headline-lg" style={{ fontSize: '3rem' }}>현재 턴:</span>
-                         <strong className="display-md" style={{ color: 'var(--ow-primary)', fontSize: '4rem' }}>
+                       <div className="glassliquid-panel" style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem 3rem' }}>
+                         <span className="headline-lg" style={{ fontSize: '2rem' }}>현재 턴:</span>
+                         <strong className="display-md" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem' }}>
                            {chainData.playersInfo.find(p => p.id === chainData.currentPlayerId)?.nickname || '알 수 없음'}
                          </strong>
                        </div>

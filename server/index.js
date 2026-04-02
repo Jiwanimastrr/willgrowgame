@@ -364,10 +364,11 @@ io.on('connection', (socket) => {
 
     // Host에게는 정답 & 메인 문제 전송
     io.to(room.host).emit('hostNewQuestion', { meaning: question.meaning, answer: question.answer });
+    console.log(`📝 Word Quiz: meaning="${question.meaning}", answer="${question.answer}"`);
     
-    // Player들에게는 주관식 출제 알림 전송
+    // Player들에게는 뜻(meaning)과 함께 주관식 출제 알림 전송
     room.players.forEach(p => {
-      io.to(p.id).emit('playerNewQuestion', { type: 'typing' });
+      io.to(p.id).emit('playerNewQuestion', { type: 'typing', meaning: question.meaning });
     });
   }
 

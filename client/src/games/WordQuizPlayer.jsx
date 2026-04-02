@@ -67,9 +67,20 @@ function WordQuizPlayer({ pin, nickname }) {
              </div>
            ) : (
              <form onSubmit={handleAnswer} style={{ display: 'flex', flexDirection: 'column', height: '100%', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-               <h3 className="headline-lg" style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '3rem', color: 'var(--ow-secondary)', textTransform: 'uppercase' }}>
-                 INPUT REQUIRED
-               </h3>
+                {question.meaning && (
+                  <div style={{ 
+                    fontSize: '3rem', fontWeight: 700, color: '#fff', textAlign: 'center', 
+                    marginBottom: '1.5rem', padding: '1rem 2rem',
+                    background: 'rgba(255,255,255,0.05)', borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    textShadow: '0 0 15px rgba(204,151,255,0.4)'
+                  }}>
+                    {question.meaning}
+                  </div>
+                )}
+                <h3 className="headline-lg" style={{ fontSize: '2rem', textAlign: 'center', marginBottom: '2rem', color: 'var(--ow-secondary)', textTransform: 'uppercase' }}>
+                  영어 단어를 입력하세요
+                </h3>
                
                <input 
                  ref={inputRef}
