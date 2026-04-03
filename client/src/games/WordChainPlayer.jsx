@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 import { AlertCircle } from 'lucide-react';
 
-function WordChainPlayer({ pin, nickname }) {
+function WordChainPlayer({ pin }) {
   const [chainData, setChainData] = useState(null);
   const [inputWord, setInputWord] = useState('');
   const [alertMsg, setAlertMsg] = useState('');

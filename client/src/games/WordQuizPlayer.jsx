@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { socket } from '../utils/socket';
 
-function WordQuizPlayer({ pin, nickname }) {
+function WordQuizPlayer({ pin }) {
   const [question, setQuestion] = useState(null);
   const [result, setResult] = useState(null); // 'waiting', 'correct', 'incorrect'
   const [inputValue, setInputValue] = useState('');

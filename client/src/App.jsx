@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import HostScreen from './components/HostScreen';
 import PlayerScreen from './components/PlayerScreen';
 import { soundFX } from './utils/soundFX';

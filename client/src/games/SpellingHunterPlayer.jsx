@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { socket } from '../utils/socket';
 
-function SpellingHunterPlayer({ pin, nickname }) {
+function SpellingHunterPlayer({ pin }) {
   const [hunterState, setHunterState] = useState(null);
   const [activeWords, setActiveWords] = useState([]);
   const [hp, setHp] = useState(5);
@@ -34,6 +34,26 @@ function SpellingHunterPlayer({ pin, nickname }) {
        window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  const removeWord = useCallback((id) => {
+    setActiveWords(prev => prev.filter(w => w.id !== id));
+    wordsRef.current = wordsRef.current.filter(w => w.id !== id);
+  }, []);
+
+  const takeDamage = useCallback(() => {
+    if (!alive) return;
+    if (window.soundFX) window.soundFX.playWrong();
+    
+    setHp(prev => {
+      const nextHp = prev - 1;
+      if (nextHp <= 0) {
+        setAlive(false);
+        socket.emit('hunterPlayerDied', { pin });
+        return 0;
+      }
+      return nextHp;
+    });
+  }, [alive, pin]);
 
   useEffect(() => {
     socket.on('hunterState', (data) => {
@@ -75,27 +95,7 @@ function SpellingHunterPlayer({ pin, nickname }) {
       socket.off('hunterSpeedUp');
       socket.off('hunterGameOver');
     };
-  }, [alive]);
-
-  const removeWord = (id) => {
-    setActiveWords(prev => prev.filter(w => w.id !== id));
-    wordsRef.current = wordsRef.current.filter(w => w.id !== id);
-  };
-
-  const takeDamage = () => {
-    if (!alive) return;
-    if (window.soundFX) window.soundFX.playWrong();
-    
-    setHp(prev => {
-      const nextHp = prev - 1;
-      if (nextHp <= 0) {
-        setAlive(false);
-        socket.emit('hunterPlayerDied', { pin });
-        return 0;
-      }
-      return nextHp;
-    });
-  };
+  }, [alive, takeDamage, removeWord]);
 
   const handleInputSubmit = (e) => {
     e.preventDefault();

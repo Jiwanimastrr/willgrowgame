@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 
-function WordBingoPlayer({ pin, nickname }) {
+function WordBingoPlayer({ pin }) {
   const [wordList, setWordList] = useState([]);
   const [boardSize, setBoardSize] = useState(16); // 16 (4x4) or 25 (5x5)
   const [myBoard, setMyBoard] = useState([]); // string[]

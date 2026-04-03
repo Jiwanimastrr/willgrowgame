@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { socket } from '../utils/socket';
 
-function BombGamePlayer({ pin, nickname }) {
+function BombGamePlayer({ pin }) {
   const [bombState, setBombState] = useState(null);
   const [bombExploded, setBombExploded] = useState(false);
   const [wordInput, setWordInput] = useState('');

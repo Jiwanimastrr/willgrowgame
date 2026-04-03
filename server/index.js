@@ -250,9 +250,15 @@ io.on('connection', (socket) => {
   // ------------------------------------
 
 
-  // 2. 방 접속 (Player)
+  // 2. 방 접속 (Player) - 최대 15명 제한
+  const MAX_PLAYERS = 15;
   socket.on('joinRoom', ({ pin, nickname }, callback) => {
     if (rooms[pin]) {
+      if (rooms[pin].players.length >= MAX_PLAYERS) {
+        console.log(`🚫 Room ${pin} is full (${MAX_PLAYERS}/${MAX_PLAYERS}). ${nickname} rejected.`);
+        if(typeof callback === 'function') callback({ success: false, message: `방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명)` });
+        return;
+      }
       const player = { id: socket.id, nickname, score: 0 };
       rooms[pin].players.push(player);
       socket.join(pin);
@@ -260,7 +266,7 @@ io.on('connection', (socket) => {
       // 방 전체에 새로운 플레이어 접속 알림
       io.to(pin).emit('playersUpdated', rooms[pin].players);
       
-      console.log(`👤 User ${nickname}(${socket.id}) joined room ${pin}`);
+      console.log(`👤 User ${nickname}(${socket.id}) joined room ${pin} (${rooms[pin].players.length}/${MAX_PLAYERS})`);
       if(typeof callback === 'function') callback({ success: true, room: rooms[pin], player });
     } else {
       if(typeof callback === 'function') callback({ success: false, message: 'Invalid PIN' });
@@ -362,9 +368,9 @@ io.on('connection', (socket) => {
     const question = sourceDB[Math.floor(Math.random() * sourceDB.length)];
     room.currentQuestion = question;
 
-    // Host에게는 정답 & 메인 문제 전송
-    io.to(room.host).emit('hostNewQuestion', { meaning: question.meaning, answer: question.answer });
-    console.log(`📝 Word Quiz: meaning="${question.meaning}", answer="${question.answer}"`);
+    // 방 전체에 문제 전송 (호스트는 정답+뜻, 플레이어는 뜻만)
+    io.to(pin).emit('hostNewQuestion', { meaning: question.meaning, answer: question.answer });
+    console.log(`📝 Word Quiz: meaning="${question.meaning}", answer="${question.answer}", pin=${pin}`);
     
     // Player들에게는 뜻(meaning)과 함께 주관식 출제 알림 전송
     room.players.forEach(p => {

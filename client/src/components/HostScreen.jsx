@@ -22,6 +22,8 @@ function HostScreen() {
   const [bombExploded, setBombExploded] = useState(null);
 
   const [hunterData, setHunterData] = useState(null);
+  const [raceData, setRaceData] = useState(null);
+  const [raceWinner, setRaceWinner] = useState(null);
 
 
   const [categoryVoteTally, setCategoryVoteTally] = useState({});
@@ -30,36 +32,64 @@ function HostScreen() {
   const [showVocabModal, setShowVocabModal] = useState(false);
   const [vocabInput, setVocabInput] = useState('');
   const [customVocabCount, setCustomVocabCount] = useState(0);
-  const [showSpellChainOptions, setShowSpellChainOptions] = useState(false);
   const [showSpellingHunterOptions, setShowSpellingHunterOptions] = useState(false);
   const [showWordQuizOptions, setShowWordQuizOptions] = useState(false);
+  const [wordQuizWinningScore, setWordQuizWinningScore] = useState(100);
   const [showSpeedRaceSoloOptions, setShowSpeedRaceSoloOptions] = useState(false);
   const [showSpeedRaceTeamOptions, setShowSpeedRaceTeamOptions] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [lobbyStep, setLobbyStep] = useState('waiting');
 
   const [heroOpacity, setHeroOpacity] = useState(1);
   const heroIntervalRef = useRef(null);
   const isHeroFadingRef = useRef(false);
 
   const [ytPlayer, setYtPlayer] = useState(null);
+  const gameBgmRef = useRef(null);
   
-  const LOBBY_AUDIO_ID = 'jfKfPfyJRdk'; // Lofi Girl stream
-  const GAME_AUDIO_ID = 'ZzHYbM0l4ec'; // Requested music for games
-  const BGM_VIDEO_ID = gameState === 'lobby' ? LOBBY_AUDIO_ID : GAME_AUDIO_ID;
+  const LOBBY_BGM_ID = 'QtxeJ703w18';
 
   const onPlayerReady = (event) => {
     setYtPlayer(event.target);
     event.target.setVolume(20);
-    // Attempt autoplay
     event.target.playVideo();
   };
+
+  // 게임 상태에 따라 BGM 전환
+  useEffect(() => {
+    const isInGame = gameState !== 'lobby' && gameState;
+    const gameAudio = gameBgmRef.current;
+
+    if (isInGame) {
+      // 게임 시작: YouTube BGM 멈추고 게임 BGM 재생
+      if (ytPlayer) {
+        try { ytPlayer.pauseVideo(); } catch { /* ignore */ }
+      }
+      if (gameAudio) {
+        gameAudio.volume = 0.25;
+        gameAudio.currentTime = 0;
+        gameAudio.play().catch(() => {});
+      }
+    } else {
+      // 로비 복귀: 게임 BGM 멈추고 YouTube BGM 재생
+      if (gameAudio) {
+        gameAudio.pause();
+        gameAudio.currentTime = 0;
+      }
+      if (ytPlayer) {
+        try { ytPlayer.setVolume(20); ytPlayer.playVideo(); } catch { /* ignore */ }
+      }
+    }
+  }, [gameState, ytPlayer]);
 
   useEffect(() => {
     // 자동재생 정책(Autoplay Policy) 우회
     const unlockAudio = () => {
       if (ytPlayer) {
          ytPlayer.playVideo();
+      }
+      // 게임 오디오도 미리 unlock
+      if (gameBgmRef.current) {
+        gameBgmRef.current.play().then(() => gameBgmRef.current.pause()).catch(() => {});
       }
       window.removeEventListener('click', unlockAudio);
     };
@@ -98,8 +128,8 @@ function HostScreen() {
       setQuizData({ meaning, answer, winner: null });
     });
 
-    socket.on('correctAnswer', ({ winnerId, winnerNickname, ended, winner }) => {
-      setQuizData(prev => prev ? { ...prev, winner: winnerNickname, ended, winner } : null);
+    socket.on('correctAnswer', ({ winnerNickname, ended }) => {
+      setQuizData(prev => prev ? { ...prev, winner: winnerNickname, ended } : null);
     });
 
     socket.on('sentenceRaceStarted', ({ totalSentences }) => {
@@ -110,7 +140,7 @@ function HostScreen() {
       setPuzzleData(prev => ({ ...(prev || {}), isActive: true, ...data }));
     });
 
-    socket.on('puzzleCorrectAnswer', ({ winnerId, winnerNickname, finalLeaderboard }) => {
+    socket.on('puzzleCorrectAnswer', ({ winnerNickname, finalLeaderboard }) => {
       setPuzzleData(prev => prev ? { ...prev, winner: winnerNickname, finalLeaderboard, isActive: false } : null);
     });
 
@@ -273,17 +303,32 @@ function HostScreen() {
         }} />
       </div>
 
+      {/* Lobby YouTube BGM (hidden) */}
       <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: '1px', height: '1px', overflow: 'hidden' }}>
-        {/* BGM Video hidden everywhere */}
         <YouTube
-          key={BGM_VIDEO_ID}
-          videoId={BGM_VIDEO_ID}
+          key={LOBBY_BGM_ID}
+          videoId={LOBBY_BGM_ID}
           opts={{
-            playerVars: { autoplay: 1, controls: 0, disablekb: 1, loop: 1, playlist: BGM_VIDEO_ID },
+            playerVars: { 
+              autoplay: 1, 
+              controls: 0, 
+              disablekb: 1, 
+              loop: 1, 
+              playlist: LOBBY_BGM_ID 
+            },
           }}
           onReady={onPlayerReady}
+          onStateChange={(e) => {
+            if (e.data === 0) {
+              e.target.seekTo(0);
+              e.target.playVideo();
+            }
+          }}
         />
       </div>
+
+      {/* Game BGM (local audio file) */}
+      <audio ref={gameBgmRef} src="/game_bgm.webm" loop preload="auto" />
 
       {/* Return Home Button (Not in Lobby) */}
       {(gameState !== 'lobby') && (
@@ -292,7 +337,6 @@ function HostScreen() {
           onClick={() => {
             if(window.confirm('로비로 돌아가시겠습니까? 게임 진행 상황이 초기화될 수 있습니다.')) {
                socket.emit('startGame', { pin, gameMode: 'lobby' });
-               setLobbyStep('waiting');
             }
           }}
           style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 100 }}
@@ -306,24 +350,24 @@ function HostScreen() {
         <div style={{ display: 'flex', width: '100%', height: '100%' }}>
            
            {/* Left Navigation Menu (Overwatch Style) */}
-           <div style={{ width: '450px', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '4rem', zIndex: 10 }}>
+           <div style={{ width: '450px', display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: '4rem', paddingTop: '2rem', paddingBottom: '2rem', zIndex: 10, overflowY: 'auto' }}>
              
-             <div className="ow-main-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.5rem' }}>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowWordQuizOptions(true)}>WORD QUIZ</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('sentencePuzzle')}>SENTENCE RACE</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('wordChain')}>WORD CHAIN</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => { setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo'); }}>DIGITAL BINGO</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => startGame('categoryBomb')}>CATEGORY BOMB</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpellingHunterOptions(true)}>SPELLING HUNTER</button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpeedRaceSoloOptions(true)}>SPEED RACE <span style={{fontSize:'1.5rem'}}>(SOLO)</span></button>
-                <button className="ow-menu-item" style={{ fontSize: '3rem', margin: '0' }} onClick={() => setShowSpeedRaceTeamOptions(true)}>SPEED RACE <span style={{fontSize:'1.5rem'}}>(TEAM)</span></button>
+             <div className="ow-main-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.3rem' }}>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowWordQuizOptions(true)}>WORD QUIZ</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('sentencePuzzle')}>SENTENCE RACE</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('wordChain')}>WORD CHAIN</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => { setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo'); }}>DIGITAL BINGO</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('categoryBomb')}>CATEGORY BOMB</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpellingHunterOptions(true)}>SPELLING HUNTER</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpeedRaceSoloOptions(true)}>SPEED RACE <span style={{fontSize:'1.2rem'}}>(SOLO)</span></button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpeedRaceTeamOptions(true)}>SPEED RACE <span style={{fontSize:'1.2rem'}}>(TEAM)</span></button>
              </div>
              
              <button 
                onClick={() => setShowVocabModal(true)}
                style={{ 
-                 marginTop: '3rem', padding: '1rem 2.5rem', alignSelf: 'flex-start',
-                 fontSize: '1.5rem', fontFamily: 'var(--font-header)', fontWeight: 800, fontStyle: 'italic',
+                 marginTop: '1.5rem', padding: '0.8rem 2rem', alignSelf: 'flex-start',
+                 fontSize: '1.2rem', fontFamily: 'var(--font-header)', fontWeight: 800, fontStyle: 'italic',
                  background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px) saturate(180%)',
                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
                  border: '1.5px solid rgba(255,255,255,0.2)', borderRadius: '50px',
@@ -415,6 +459,14 @@ function HostScreen() {
                )}
 
                 {/* 1. Word Quiz */}
+               {gameState === 'wordQuiz' && !quizData && (
+                 <div style={{ textAlign: 'center' }}>
+                   <h3 className="headline-lg pulse-wait-text" style={{ color: 'var(--ow-primary)', fontSize: '3rem', textShadow: '0 0 20px var(--ow-primary)' }}>
+                     WORD QUIZ LOADING...
+                   </h3>
+                   <p className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem', marginTop: '2rem' }}>첫 번째 문제를 준비 중입니다</p>
+                 </div>
+               )}
                {gameState === 'wordQuiz' && quizData ? (
                  <>
                    <h3 className="body-md" style={{ color: 'var(--on-surface-variant)', fontSize: '1.5rem', marginBottom: '2rem' }}>WHAT IS THIS WORD?</h3>
@@ -857,7 +909,6 @@ function HostScreen() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-               <button className="ow-btn" onClick={() => { startGame('categoryVote', null, wordQuizWinningScore); setShowWordQuizOptions(false); }}>VOTE 🗳️</button>
                <button className="ow-btn" onClick={() => { startGame('wordQuiz', 'All', wordQuizWinningScore); setShowWordQuizOptions(false); }}>ALL RANDOM 🎲</button>
                {['동물 & 자연', '음식 & 과일', '사물 & 장소', '직업 & 인간', '숫자'].map(cat => (
                  <button key={cat} className="ow-btn" onClick={() => { startGame('wordQuiz', cat, wordQuizWinningScore); setShowWordQuizOptions(false); }}>{cat}</button>
@@ -1038,6 +1089,39 @@ function HostScreen() {
             <h3 className="body-md" style={{ color: 'var(--on-surface)', fontSize: '1.6rem', margin: 0, letterSpacing: '2px', opacity: 0.8 }}>
               {joinUrl}
             </h3>
+
+            {/* 접속자 현황 */}
+            <div style={{
+              width: '100%', padding: '1.2rem 1.5rem', marginTop: '0.5rem',
+              background: 'rgba(0,0,0,0.35)', borderRadius: '20px',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.8rem', marginBottom: '0.8rem' }}>
+                <Users size={22} color="var(--ow-primary)" />
+                <span className="headline-lg" style={{ color: 'var(--ow-primary)', fontSize: '1.4rem' }}>
+                  접속자 {players.length} / 15
+                </span>
+              </div>
+              {players.length > 0 ? (
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  {players.map((p, idx) => (
+                    <span key={idx} className="glassliquid-badge" style={{ 
+                      fontSize: '1.1rem', padding: '0.4rem 1rem',
+                      animation: 'fadeIn 0.3s ease-out',
+                      animationDelay: `${idx * 0.05}s`,
+                      animationFillMode: 'both'
+                    }}>
+                      {p.nickname}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: 'var(--on-surface-variant)', fontSize: '1.1rem', opacity: 0.7 }}>
+                  QR 스캔 대기 중...
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={() => setShowQRModal(false)}
               style={{
