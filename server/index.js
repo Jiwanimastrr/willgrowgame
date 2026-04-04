@@ -274,7 +274,7 @@ io.on('connection', (socket) => {
   });
 
   // 3. 게임 시작 (Host)
-  socket.on('startGame', ({ pin, gameMode, category, winningScore }) => {
+  socket.on('startGame', ({ pin, gameMode, category, winningScore, options }) => {
     const room = rooms[pin];
     if (room && room.host === socket.id) {
       // 기존 게임 타이머 전부 정리
@@ -291,6 +291,9 @@ io.on('connection', (socket) => {
       room.gameState = gameMode;
       if (category) {
         room.quizCategory = category === 'All' ? null : category;
+      }
+      if (options) {
+        room[`${gameMode}Options`] = options;
       }
       io.to(pin).emit('gameStarted', { gameMode });
       io.to(pin).emit('playersUpdated', room.players);
@@ -434,15 +437,24 @@ io.on('connection', (socket) => {
   function startWordChain(pin, room) {
     if (room.chainTimer) clearInterval(room.chainTimer);
     
-    // 무작위 첫 단어 설정
+    // 무작위 첫 단어 설정 (특수기호나 띄어쓰기가 없는 단어만 후보로)
     const db = (room.customWordDB && room.customWordDB.length > 0) ? room.customWordDB : wordQuizDB;
-    const startingWord = db[Math.floor(Math.random() * db.length)].answer;
+    let validDb = db.filter(w => /^[a-zA-Z]+$/.test(w.answer));
+    
+    if (room.wordChainOptions && room.wordChainOptions.isLengthLimitEnabled) {
+      const limit = room.wordChainOptions.wordChainLengthLimit;
+      const lengthFiltered = validDb.filter(w => w.answer.length === limit);
+      if (lengthFiltered.length > 0) validDb = lengthFiltered;
+    }
+    
+    let startingWord = validDb.length > 0 ? validDb[Math.floor(Math.random() * validDb.length)].answer : 'apple';
     
     room.wordChain = {
       activePlayers: [...room.players.map(p => p.id)], // 현재 방의 플레이어 ID 목록 복사
       currentPlayerIndex: 0,
       chain: [startingWord],
-      timeRemaining: 15, // 15초 제한
+      timeRemaining: 10, // 10초 제한
+      options: room.wordChainOptions || {}
     };
 
     broadcastChainState(pin, room);
@@ -493,7 +505,7 @@ io.on('connection', (socket) => {
         }
         
         // 턴 초기화
-        room.wordChain.timeRemaining = 15;
+        room.wordChain.timeRemaining = 10;
       }
       
       broadcastChainState(pin, room);
@@ -834,6 +846,14 @@ io.on('connection', (socket) => {
       if (validStart !== submittedStart || word.length <= 1) {
         io.to(socket.id).emit('invalidWord', { message: `'${validStart}'로 시작하는 2글자 이상의 단어를 입력하세요!` });
         return;
+      }
+      
+      if (room.wordChain.options?.isLengthLimitEnabled) {
+        const limit = room.wordChain.options.wordChainLengthLimit;
+        if (word.length !== limit) {
+           io.to(socket.id).emit('invalidWord', { message: `반드시 ${limit}글자 단어를 입력해야 합니다!` });
+           return;
+        }
       }
       
       // 이미 사용된 단어인지 검사

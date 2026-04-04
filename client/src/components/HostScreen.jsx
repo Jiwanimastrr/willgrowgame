@@ -41,7 +41,10 @@ function HostScreen() {
 
   const [heroOpacity, setHeroOpacity] = useState(1);
   const heroIntervalRef = useRef(null);
-  const isHeroFadingRef = useRef(false);
+  const [isHeroFadingRef] = useState({ current: false });
+  const [showWordChainOptions, setShowWordChainOptions] = useState(false);
+  const [isChainLengthLimitEnabled, setIsChainLengthLimitEnabled] = useState(false);
+  const [wordChainLengthLimit, setWordChainLengthLimit] = useState(5);
 
   const [ytPlayer, setYtPlayer] = useState(null);
   const gameBgmRef = useRef(null);
@@ -206,13 +209,15 @@ function HostScreen() {
     };
   }, []);
 
-  const startGame = (gameMode, category = null, winningScore = null) => {
+  const startGame = (gameMode, category = null, winningScore = null, options = null) => {
     if (players.length === 0) {
       alert('참여자가 1명 이상 필요합니다.');
       return;
     }
-    socket.emit('startGame', { pin, gameMode, category, winningScore });
+    socket.emit('startGame', { pin, gameMode, category, winningScore, options });
     setShowWordQuizOptions(false);
+    setShowWordChainOptions(false);
+    setShowSpellingHunterOptions(false);
     setShowSpeedRaceSoloOptions(false);
     setShowSpeedRaceTeamOptions(false);
   };
@@ -355,7 +360,7 @@ function HostScreen() {
              <div className="ow-main-menu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '0.3rem' }}>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowWordQuizOptions(true)}>WORD QUIZ</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('sentencePuzzle')}>SENTENCE RACE</button>
-                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('wordChain')}>WORD CHAIN</button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowWordChainOptions(true)}>WORD CHAIN</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => { setBingoDrawnWords([]); setBingoWinners([]); startGame('wordBingo'); }}>DIGITAL BINGO</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('categoryBomb')}>CATEGORY BOMB</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpellingHunterOptions(true)}>SPELLING HUNTER</button>
@@ -947,6 +952,7 @@ function HostScreen() {
              <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '사물 & 장소')}>🏫 Objects & Places</button>
              <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
              <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '숫자')}>🔢 Numbers</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceIndividual', '불규칙동사 (과거/과거분사)')}>🔄 Irregular Verbs</button>
              <button className="genie-btn genie-btn-close" onClick={() => setShowSpeedRaceSoloOptions(false)}>CLOSE</button>
           </div>
         </div>
@@ -963,7 +969,37 @@ function HostScreen() {
              <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '사물 & 장소')}>🏫 Objects & Places</button>
              <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
              <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '숫자')}>🔢 Numbers</button>
+             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '불규칙동사 (과거/과거분사)')}>🔄 Irregular Verbs</button>
              <button className="genie-btn genie-btn-close" onClick={() => setShowSpeedRaceTeamOptions(false)}>CLOSE</button>
+          </div>
+        </div>
+      )}
+
+      {/* Word Chain Options Modal */}
+      {showWordChainOptions && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowWordChainOptions(false)}>
+          <div className="glassliquid-panel" style={{ width: '90%', maxWidth: '600px', animation: 'zoomIn 0.3s ease-out', padding: '3rem', textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <h2 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '2rem' }}>WORD CHAIN OPTIONS</h2>
+            
+            <div className="surface-card" style={{ marginBottom: '2rem', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                 <span className="body-md" style={{ fontSize: '1.5rem', color: 'var(--on-surface)' }}>글자수 제한 켜기:</span>
+                 <input type="checkbox" checked={isChainLengthLimitEnabled} onChange={e => setIsChainLengthLimitEnabled(e.target.checked)} style={{ width: '24px', height: '24px', cursor: 'pointer' }} />
+              </div>
+              
+              {isChainLengthLimitEnabled && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+                    <button className="ow-btn" style={{ padding: '0.5rem 1rem', fontSize: '1.5rem' }} onClick={() => setWordChainLengthLimit(prev => Math.max(2, prev - 1))}>-</button>
+                    <span className="display-lg" style={{ color: 'var(--ow-primary)', fontSize: '2.5rem', width: '80px', textAlign: 'center' }}>{wordChainLengthLimit}</span>
+                    <button className="ow-btn" style={{ padding: '0.5rem 1rem', fontSize: '1.5rem' }} onClick={() => setWordChainLengthLimit(prev => Math.min(10, prev + 1))}>+</button>
+                  </div>
+              )}
+            </div>
+
+            <button className="ow-btn" style={{ width: '100%', padding: '1.5rem', fontSize: '1.6rem', marginBottom: '1rem' }} onClick={() => startGame('wordChain', null, null, { isLengthLimitEnabled: isChainLengthLimitEnabled, wordChainLengthLimit })}>
+              START GAME 🚀
+            </button>
+            <button className="ow-btn ow-btn-secondary" style={{ width: '100%', padding: '1.5rem', fontSize: '1.6rem' }} onClick={() => setShowWordChainOptions(false)}>CANCEL</button>
           </div>
         </div>
       )}
