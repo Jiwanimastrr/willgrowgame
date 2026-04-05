@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '../utils/socket';
 import { Users, Play } from 'lucide-react';
-import YouTube from 'react-youtube';
+
 
 function HostScreen() {
   const [pin, setPin] = useState(null);
@@ -46,26 +46,19 @@ function HostScreen() {
   const [isChainLengthLimitEnabled, setIsChainLengthLimitEnabled] = useState(false);
   const [wordChainLengthLimit, setWordChainLengthLimit] = useState(5);
 
-  const [ytPlayer, setYtPlayer] = useState(null);
+  const lobbyBgmRef = useRef(null);
   const gameBgmRef = useRef(null);
-  
-  const LOBBY_BGM_ID = 'QtxeJ703w18';
-
-  const onPlayerReady = (event) => {
-    setYtPlayer(event.target);
-    event.target.setVolume(20);
-    event.target.playVideo();
-  };
 
   // 게임 상태에 따라 BGM 전환
   useEffect(() => {
     const isInGame = gameState !== 'lobby' && gameState;
     const gameAudio = gameBgmRef.current;
+    const lobbyAudio = lobbyBgmRef.current;
 
     if (isInGame) {
-      // 게임 시작: YouTube BGM 멈추고 게임 BGM 재생
-      if (ytPlayer) {
-        try { ytPlayer.pauseVideo(); } catch { /* ignore */ }
+      // 게임 시작: 로비 BGM 멈추고 게임 BGM 재생
+      if (lobbyAudio) {
+        lobbyAudio.pause();
       }
       if (gameAudio) {
         gameAudio.volume = 0.25;
@@ -73,22 +66,24 @@ function HostScreen() {
         gameAudio.play().catch(() => {});
       }
     } else {
-      // 로비 복귀: 게임 BGM 멈추고 YouTube BGM 재생
+      // 로비 복귀: 게임 BGM 멈추고 로비 BGM 재생
       if (gameAudio) {
         gameAudio.pause();
         gameAudio.currentTime = 0;
       }
-      if (ytPlayer) {
-        try { ytPlayer.setVolume(20); ytPlayer.playVideo(); } catch { /* ignore */ }
+      if (lobbyAudio) {
+        lobbyAudio.volume = 0.20;
+        lobbyAudio.play().catch(() => {});
       }
     }
-  }, [gameState, ytPlayer]);
+  }, [gameState]);
 
   useEffect(() => {
     // 자동재생 정책(Autoplay Policy) 우회
     const unlockAudio = () => {
-      if (ytPlayer) {
-         ytPlayer.playVideo();
+      if (lobbyBgmRef.current) {
+         lobbyBgmRef.current.volume = 0.20;
+         lobbyBgmRef.current.play().catch(() => {});
       }
       // 게임 오디오도 미리 unlock
       if (gameBgmRef.current) {
@@ -98,7 +93,7 @@ function HostScreen() {
     };
     window.addEventListener('click', unlockAudio);
     return () => window.removeEventListener('click', unlockAudio);
-  }, [ytPlayer]);
+  }, []);
 
   useEffect(() => {
     socket.connect();
@@ -308,29 +303,8 @@ function HostScreen() {
         }} />
       </div>
 
-      {/* Lobby YouTube BGM (hidden) */}
-      <div style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: '1px', height: '1px', overflow: 'hidden' }}>
-        <YouTube
-          key={LOBBY_BGM_ID}
-          videoId={LOBBY_BGM_ID}
-          opts={{
-            playerVars: { 
-              autoplay: 1, 
-              controls: 0, 
-              disablekb: 1, 
-              loop: 1, 
-              playlist: LOBBY_BGM_ID 
-            },
-          }}
-          onReady={onPlayerReady}
-          onStateChange={(e) => {
-            if (e.data === 0) {
-              e.target.seekTo(0);
-              e.target.playVideo();
-            }
-          }}
-        />
-      </div>
+      {/* Lobby BGM (local audio file) */}
+      <audio ref={lobbyBgmRef} src="/host_bgm.webm" loop preload="auto" />
 
       {/* Game BGM (local audio file) */}
       <audio ref={gameBgmRef} src="/game_bgm.webm" loop preload="auto" />
