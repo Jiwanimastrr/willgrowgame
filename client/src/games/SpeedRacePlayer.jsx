@@ -124,9 +124,10 @@ function SpeedRacePlayer({ pin, nickname }) {
                     fontFamily: '"Pretendard", "Roboto", "Helvetica Neue", Arial, sans-serif', 
                     fontWeight: 900, 
                     textAlign: 'center', 
-                    fontSize: 'clamp(1.5rem, 6.5vw, 2.8rem)', 
+                    fontSize: 'clamp(1.2rem, 5vw, 2.4rem)', 
                     lineHeight: '1.3', 
-                    wordBreak: 'keep-all',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
                     color: '#ffffff',
                     letterSpacing: '0px',
                     textShadow: '2px 2px 5px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' 

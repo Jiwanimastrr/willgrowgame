@@ -33,11 +33,9 @@ function SentencePuzzlePlayer({ pin, nickname }) {
       setFeedback('wrong');
       setTimeout(() => {
         setFeedback(null);
-        // 틀리면 자동 리셋 — functional updater로 최신 상태 참조
-        setSelectedTokens(prevSelected => {
-          setTokens(prevTokens => [...prevSelected, ...prevTokens].sort(() => 0.5 - Math.random()));
-          return [];
-        });
+        // 틀리면 자동 리셋
+        setSelectedTokens([]);
+        setTokens(prevTokens => [...prevTokens].sort(() => 0.5 - Math.random()));
       }, 500);
     });
 
@@ -63,7 +61,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
   useEffect(() => {
     // 마지막 토큰까지 모두 선택되었으면 자동 제출
-    if (puzzleInfo && tokens.length === 0 && selectedTokens.length > 0 && !feedback && !finished) {
+    if (puzzleInfo && tokens.length > 0 && tokens.length === selectedTokens.length && !feedback && !finished) {
       const submittedSentence = selectedTokens.map(t => t.text).join(' ');
       socket.emit('submitSentence', { pin, submittedSentence });
     }
@@ -71,7 +69,7 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
   const handleSelect = (token) => {
     if (feedback || finished) return;
-    setTokens(prev => prev.filter(t => t.id !== token.id));
+    if (selectedTokens.find(t => t.id === token.id)) return;
     setSelectedTokens(prev => [...prev, token]);
     if (window.soundFX) window.soundFX.playTick();
   };
@@ -79,7 +77,6 @@ function SentencePuzzlePlayer({ pin, nickname }) {
   const handleDeselect = (token) => {
     if (feedback || finished) return;
     setSelectedTokens(prev => prev.filter(t => t.id !== token.id));
-    setTokens(prev => [...prev, token]);
     if (window.soundFX) window.soundFX.playTick();
   };
 
@@ -148,16 +145,24 @@ function SentencePuzzlePlayer({ pin, nickname }) {
 
           {/* Unused Words Area */}
           <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '0.8rem', alignContent: 'flex-start' }}>
-            {tokens.map(t => (
-              <button 
-                key={t.id} 
-                className="ow-btn-secondary" 
-                style={{ padding: '0.5rem 1rem', fontSize: '1.5rem', fontWeight: 'bold' }}
-                onClick={() => handleSelect(t)}
-              >
-                {t.text}
-              </button>
-            ))}
+            {tokens.map(t => {
+              const isSelected = selectedTokens.find(st => st.id === t.id);
+              return (
+                <button 
+                  key={t.id} 
+                  className="ow-btn-secondary" 
+                  style={{ 
+                    padding: '0.5rem 1rem', 
+                    fontSize: '1.5rem', 
+                    fontWeight: 'bold', 
+                    visibility: isSelected ? 'hidden' : 'visible'
+                  }}
+                  onClick={() => !isSelected && handleSelect(t)}
+                >
+                  {t.text}
+                </button>
+              );
+            })}
           </div>
 
         </div>
