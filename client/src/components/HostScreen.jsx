@@ -563,14 +563,15 @@ function HostScreen() {
                     </div>
                     
                     {puzzleData.winner ? (
-                      <div className="surface-card neon-glow animate-enter" style={{ position: 'relative', marginTop: '3rem', padding: '4rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)', background: 'rgba(204,151,255,0.1)' }}>
-                        <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={600} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />
-                        <h2 className="display-lg" style={{ color: 'var(--ow-secondary)', margin: '0 0 2rem 0', fontSize: '3rem', textShadow: '0 0 20px var(--ow-secondary)' }}>RACE FINISHED!</h2>
-                        <h3 className="headline-lg" style={{ margin: 0, fontSize: '2rem' }}>WINNER</h3>
-                        <div className="display-lg pulse-wait-text" style={{ fontSize: '8rem', color: 'var(--ow-primary-dim)', marginTop: '1rem', textShadow: '0 0 30px var(--ow-primary-dim), 0 0 60px var(--ow-primary)' }}>
-                           {raceWinner}
+                      <>
+                        <div className="surface-card neon-glow animate-enter" style={{ position: 'relative', marginTop: '3rem', padding: '4rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)', background: 'rgba(204,151,255,0.1)' }}>
+                          <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={600} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />
+                          <h2 className="display-lg" style={{ color: 'var(--ow-secondary)', margin: '0 0 2rem 0', fontSize: '3rem', textShadow: '0 0 20px var(--ow-secondary)' }}>RACE FINISHED!</h2>
+                          <h3 className="headline-lg" style={{ margin: 0, fontSize: '2rem' }}>WINNER</h3>
+                          <div className="display-lg pulse-wait-text" style={{ fontSize: '8rem', color: 'var(--ow-primary-dim)', marginTop: '1rem', textShadow: '0 0 30px var(--ow-primary-dim), 0 0 60px var(--ow-primary)' }}>
+                             {raceWinner}
+                          </div>
                         </div>
-                      </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
                           {(puzzleData.finalLeaderboard || puzzleData.leaderboard || []).slice(0, 5).map((p, idx) => {
                              const isFirst = idx === 0;
@@ -584,7 +585,7 @@ function HostScreen() {
                              );
                           })}
                         </div>
-                      </div>
+                      </>
                     ) : (
                       <div style={{ marginTop: '2rem', width: '80%' }}>
                         <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '1rem', textAlign: 'center' }}>LIVE LEADERBOARD</h3>
