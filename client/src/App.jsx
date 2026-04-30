@@ -58,16 +58,18 @@ function Home() {
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/host" element={<HostScreen />} />
-        <Route path="/player" element={<PlayerScreen />} />
-      </Routes>
-      <div style={{ position: 'fixed', bottom: '10px', right: '15px', color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', zIndex: 9999, pointerEvents: 'none', fontFamily: 'monospace' }}>
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/host" element={<HostScreen />} />
+          <Route path="/player" element={<PlayerScreen />} />
+        </Routes>
+      </Router>
+      <div style={{ position: 'fixed', bottom: '15px', right: '20px', color: 'rgba(255,255,255,0.9)', fontSize: '1.2rem', zIndex: 2147483647, pointerEvents: 'none', fontFamily: 'monospace', fontWeight: 'bold', textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>
         v1.0
       </div>
-    </Router>
+    </>
   );
 }
 
