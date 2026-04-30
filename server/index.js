@@ -284,6 +284,23 @@ io.on('connection', (socket) => {
         console.log(`👤 User ${nickname}(${socket.id}) joined room ${pin} (${rooms[pin].players.length}/${MAX_PLAYERS})`);
       }
       if(typeof callback === 'function') callback({ success: true, room: rooms[pin], player });
+
+      // 스피드 레이스 도중 재접속 처리
+      if ((rooms[pin].gameState === 'speedRaceIndividual' || rooms[pin].gameState === 'speedRaceTeam') && 
+          rooms[pin].raceGame && rooms[pin].raceGame.isActive) {
+          
+          if (rooms[pin].gameState === 'speedRaceTeam' && !player.team) {
+             const teams = Object.keys(rooms[pin].raceGame.teams);
+             if (teams.length > 0) player.team = teams[Math.floor(Math.random() * teams.length)];
+          }
+          
+          io.to(player.socketId).emit('raceState', {
+             ...rooms[pin].raceGame,
+             playersInfo: rooms[pin].players
+          });
+          
+          setTimeout(() => emitRaceQuestion(pin, player.id), 500);
+      }
     } else {
       if(typeof callback === 'function') callback({ success: false, message: 'Invalid PIN' });
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { socket } from '../utils/socket';
+import { socket, getPlayerId } from '../utils/socket';
 import { Check, X } from 'lucide-react';
 import Confetti from 'react-confetti';
 
@@ -32,7 +32,7 @@ function SpeedRacePlayer({ pin, nickname }) {
       if (data.timeRemaining <= 5 && data.timeRemaining > 0) {
         if (window.soundFX) window.soundFX.playTick();
       }
-      const me = data.playersInfo?.find(p => p.nickname === nickname);
+      const me = data.playersInfo?.find(p => p.id === getPlayerId());
       if (me) setPlayerInfo(me);
     });
 
