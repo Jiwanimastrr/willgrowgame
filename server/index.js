@@ -1111,7 +1111,7 @@ io.on('connection', (socket) => {
           io.to(socket.id).emit('raceWrongAnswer');
         }
         
-        emitRaceQuestion(pin, socket.id);
+        emitRaceQuestion(pin, player.id);
         
         // 제출 즉시 상태 동기화
         io.to(pin).emit('raceState', {
