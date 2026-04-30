@@ -911,7 +911,10 @@ io.on('connection', (socket) => {
             io.to(pin).emit('bombPassed', { passedTo: nextPlayerId, word, isCorrect: true, message: '정답 인정!' });
           }
         } else {
-          io.to(playerId).emit('invalidBombWord', { message: '호스트가 오답 처리했습니다!' });
+          const player = room.players.find(p => p.id === playerId);
+          if (player) {
+            io.to(player.socketId).emit('invalidBombWord', { message: '호스트가 오답 처리했습니다!' });
+          }
           io.to(pin).emit('bombPassed', { passedTo: playerId, word, isCorrect: false });
         }
         broadcastBombState(pin, room);
@@ -924,7 +927,12 @@ io.on('connection', (socket) => {
           room.wordChain.timeRemaining = 15;
           io.to(pin).emit('judgeComplete', { isCorrect: true });
         } else {
-          io.to(playerId).emit('invalidWord', { message: '호스트가 오답 처리했습니다! 다시 입력하세요.' });
+          const player = room.players.find(p => p.id === playerId);
+          if (player) {
+            io.to(player.socketId).emit('invalidWord', { message: '호스트가 오답 처리했습니다! 다시 입력하세요.' });
+            
+            room.wordChain.currentTurnIndex = room.players.findIndex(p => p.id === playerId);
+          }
           io.to(pin).emit('judgeComplete', { isCorrect: false });
         }
         broadcastChainState(pin, room);
@@ -1079,7 +1087,7 @@ io.on('connection', (socket) => {
     const player = room.players.find(p => p.id === playerId);
     if (player) {
        player.currentRaceAnswer = question.answer;
-       io.to(playerId).emit('raceNewQuestion', { meaning: question.meaning, options });
+       io.to(player.socketId).emit('raceNewQuestion', { meaning: question.meaning, options });
     } else {
        console.log(`⚠️ emitRaceQuestion: player ${playerId} not found in room ${pin}`);
     }
