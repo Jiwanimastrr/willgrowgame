@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { socket } from '../utils/socket';
+import { socket, getPlayerId } from '../utils/socket';
 import { LogIn, User } from 'lucide-react';
 
 // 게임 컴포넌트 임포트
@@ -44,14 +44,24 @@ function PlayerScreen() {
       setGameState('lobby');
     };
 
+    const handleKicked = () => {
+      alert('호스트에 의해 방에서 내보내졌습니다.');
+      setJoined(false);
+      setGameState('lobby');
+      setPin('');
+      setNickname('');
+    };
+
     socket.on('gameStarted', handleGameStarted);
     socket.on('categoryVoteStarted', handleCategoryVote);
     socket.on('hostDisconnected', handleHostDisconnected);
+    socket.on('kicked', handleKicked);
 
     return () => {
       socket.off('gameStarted', handleGameStarted);
       socket.off('categoryVoteStarted', handleCategoryVote);
       socket.off('hostDisconnected', handleHostDisconnected);
+      socket.off('kicked', handleKicked);
     };
   }, []);
 
@@ -59,7 +69,8 @@ function PlayerScreen() {
     e.preventDefault();
     if (!pin || !nickname) return alert('Enter Game PIN and Nickname!');
     
-    socket.emit('joinRoom', { pin, nickname }, (res) => {
+    const playerId = getPlayerId();
+    socket.emit('joinRoom', { pin, nickname, playerId }, (res) => {
       if (res.success) {
         setJoined(true);
         setGameState(res.room.gameState);

@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '../utils/socket';
 import { Users, Play } from 'lucide-react';
-
+import YouTube from 'react-youtube';
+import Confetti from 'react-confetti';
 
 function HostScreen() {
   const [pin, setPin] = useState(null);
@@ -369,7 +370,7 @@ function HostScreen() {
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '400px', marginTop: '1.5rem' }}>
                  {players.map((p, idx) => (
-                    <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.5rem' }}>{p.nickname}</span>
+                    <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.5rem', opacity: p.connected === false ? 0.4 : 1, textDecoration: p.connected === false ? 'line-through' : 'none', cursor: 'pointer' }} onClick={() => { if(window.confirm(`${p.nickname}님을 내보내시겠습니까?`)) socket.emit('kickPlayer', { pin, nickname: p.nickname }); }}>{p.nickname}</span>
                  ))}
               </div>
            </div>
@@ -383,7 +384,7 @@ function HostScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '8rem', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '60%' }}>
               <Users size={24} color="var(--ow-primary)" style={{ marginRight: '0.5rem' }} />
               {players.length > 0 ? players.map((p, idx) => (
-                <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.2rem' }}>
+                <span key={idx} className="glassliquid-badge" style={{ fontSize: '1.2rem', opacity: p.connected === false ? 0.4 : 1, textDecoration: p.connected === false ? 'line-through' : 'none' }}>
                   {p.nickname}
                 </span>
               )) : (
@@ -552,10 +553,14 @@ function HostScreen() {
                     </div>
                     
                     {puzzleData.winner ? (
-                      <div className="surface-card neon-glow" style={{ marginTop: '2rem', textAlign: 'center', width: '90%', padding: '3rem' }}>
-                        <h2 className="display-lg" style={{ color: 'var(--ow-primary-dim)', margin: '0 0 2rem 0', fontSize: '4rem' }}>RACE FINISHED!</h2>
-                        <h3 className="headline-lg" style={{ color: 'var(--ow-secondary)', marginBottom: '3rem' }}>FINAL STANDINGS</h3>
-                        
+                      <div className="surface-card neon-glow animate-enter" style={{ position: 'relative', marginTop: '3rem', padding: '4rem 5rem', textAlign: 'center', borderColor: 'var(--ow-primary)', background: 'rgba(204,151,255,0.1)' }}>
+                        <Confetti width={window.innerWidth} height={window.innerHeight} recycle={false} numberOfPieces={600} style={{ position: 'fixed', top: 0, left: 0, zIndex: 9999, pointerEvents: 'none' }} />
+                        <h2 className="display-lg" style={{ color: 'var(--ow-secondary)', margin: '0 0 2rem 0', fontSize: '3rem', textShadow: '0 0 20px var(--ow-secondary)' }}>RACE FINISHED!</h2>
+                        <h3 className="headline-lg" style={{ margin: 0, fontSize: '2rem' }}>WINNER</h3>
+                        <div className="display-lg pulse-wait-text" style={{ fontSize: '8rem', color: 'var(--ow-primary-dim)', marginTop: '1rem', textShadow: '0 0 30px var(--ow-primary-dim), 0 0 60px var(--ow-primary)' }}>
+                           {raceWinner}
+                        </div>
+                      </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
                           {(puzzleData.finalLeaderboard || puzzleData.leaderboard || []).slice(0, 5).map((p, idx) => {
                              const isFirst = idx === 0;
@@ -801,64 +806,72 @@ function HostScreen() {
                          
                          {raceData.type === 'team' ? (
                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', width: '100%' }}>
-                             {Object.entries(raceData.teams)
-                               .sort((a,b) => b[1] - a[1])
-                               .map(([team, score]) => {
-                                 const percent = Math.min(100, (score / 30) * 100);
-                                 const colorMap = { 'RED': '#ef4444', 'BLUE': '#3b82f6', 'GREEN': '#22c55e', 'YELLOW': '#eab308' };
-                                 const barColor = colorMap[team] || '#a855f7';
-                                 return (
-                                   <div key={team} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
-                                     <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.4rem' }}>
-                                       {team}
-                                     </span>
-                                     <div style={{ flex: 1, position: 'relative', height: '16px', background: `${barColor}33`, borderRadius: '8px' }}>
-                                       <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '8px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-                                          <div style={{ 
-                                             position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)',
-                                             width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000',
-                                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
-                                             boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
-                                          }}>
-                                             {score}
+                             {(() => {
+                                const maxTeamScore = Math.max(0, ...Object.values(raceData.teams));
+                                const dynamicDenom = maxTeamScore + 15;
+                                return Object.entries(raceData.teams)
+                                  .sort((a,b) => b[1] - a[1])
+                                  .map(([team, score]) => {
+                                    const percent = Math.min(100, (score / dynamicDenom) * 100);
+                                    const colorMap = { 'RED': '#ef4444', 'BLUE': '#3b82f6', 'GREEN': '#22c55e', 'YELLOW': '#eab308' };
+                                    const barColor = colorMap[team] || '#a855f7';
+                                    return (
+                                      <div key={team} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+                                        <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.4rem' }}>
+                                          {team}
+                                        </span>
+                                        <div style={{ flex: 1, position: 'relative', height: '16px', background: `${barColor}33`, borderRadius: '8px' }}>
+                                          <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '8px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                                             <div style={{ 
+                                                position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)',
+                                                width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
+                                                boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                                             }}>
+                                                {score}
+                                             </div>
                                           </div>
-                                       </div>
-                                     </div>
-                                   </div>
-                                 );
-                             })}
+                                        </div>
+                                      </div>
+                                    );
+                                });
+                             })()}
                            </div>
-                         ) : (
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
-                             {[...raceData.playersInfo]
-                               .sort((a,b) => b.score - a.score)
-                               .slice(0, 10)
-                               .map((p, idx) => {
-                                 const percent = Math.min(100, (p.score / 20) * 100);
-                                 const colorList = ['#3b82f6', '#eab308', '#22c55e', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
-                                 const barColor = colorList[idx % colorList.length];
-                                 return (
-                                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
-                                     <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                       {p.nickname}
-                                     </span>
-                                     <div style={{ flex: 1, position: 'relative', height: '14px', background: `${barColor}33`, borderRadius: '7px' }}>
-                                       <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '7px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-                                          <div style={{ 
-                                             position: 'absolute', right: '-14px', top: '50%', transform: 'translateY(-50%)',
-                                             width: '28px', height: '28px', borderRadius: '50%', background: '#fff', color: '#000',
-                                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem',
-                                             boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
-                                          }}>
-                                             {p.score}
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+                              {(() => {
+                                const maxPlayerScore = Math.max(0, ...raceData.playersInfo.map(p => p.score));
+                                const dynamicDenom = maxPlayerScore + 15;
+                                return [...raceData.playersInfo]
+                                  .sort((a,b) => b.score - a.score)
+                                  .slice(0, 10)
+                                  .map((p, idx) => {
+                                    const percent = Math.min(100, (p.score / dynamicDenom) * 100);
+                                    const colorList = ['#3b82f6', '#eab308', '#22c55e', '#f97316', '#06b6d4', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'];
+                                    const barColor = colorList[idx % colorList.length];
+                                    return (
+                                      <div key={p.id} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+                                        <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                          {p.nickname}
+                                        </span>
+                                        <div style={{ flex: 1, position: 'relative', height: '14px', background: `${barColor}33`, borderRadius: '7px' }}>
+                                          <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '7px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                                             <div style={{ 
+                                                position: 'absolute', right: '-14px', top: '50%', transform: 'translateY(-50%)',
+                                                width: '28px', height: '28px', borderRadius: '50%', background: '#fff', color: '#000',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1rem',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+                                             }}>
+                                                {p.score}
+                                             </div>
                                           </div>
-                                       </div>
-                                     </div>
-                                   </div>
-                                 );
-                             })}
-                           </div>
-                         )}
+                                        </div>
+                                      </div>
+                                    );
+                                });
+                              })()}
+                            </div>
+                          )}
                        </div>
                      </div>
                    )}
@@ -1117,10 +1130,12 @@ function HostScreen() {
                   {players.map((p, idx) => (
                     <span key={idx} className="glassliquid-badge" style={{ 
                       fontSize: '1.1rem', padding: '0.4rem 1rem',
+                      opacity: p.connected === false ? 0.4 : 1, textDecoration: p.connected === false ? 'line-through' : 'none',
                       animation: 'fadeIn 0.3s ease-out',
                       animationDelay: `${idx * 0.05}s`,
-                      animationFillMode: 'both'
-                    }}>
+                      animationFillMode: 'both',
+                      cursor: 'pointer'
+                    }} onClick={() => { if(window.confirm(`${p.nickname}님을 내보내시겠습니까?`)) socket.emit('kickPlayer', { pin, nickname: p.nickname }); }}>
                       {p.nickname}
                     </span>
                   ))}

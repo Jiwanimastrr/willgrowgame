@@ -7,4 +7,19 @@ const SOCKET_URL = import.meta.env.PROD
 
 export const socket = io(SOCKET_URL, {
   autoConnect: false, // 필요할 때 수동 연결
+  reconnection: true,
+  reconnectionAttempts: 15,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  timeout: 60000, // 서버와 동일하게 60초 설정
+  transports: ['websocket', 'polling'], // 웹소켓 우선 연결
 });
+
+export const getPlayerId = () => {
+  let pid = localStorage.getItem('willgrow_player_id');
+  if (!pid) {
+    pid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('willgrow_player_id', pid);
+  }
+  return pid;
+};

@@ -13,7 +13,9 @@ const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  pingInterval: 25000,
+  pingTimeout: 60000 // 연결 지연 시 끊김 방지를 위해 60초로 증가
 });
 
 const PORT = process.env.PORT || 3001;
@@ -252,21 +254,35 @@ io.on('connection', (socket) => {
 
   // 2. 방 접속 (Player) - 최대 15명 제한
   const MAX_PLAYERS = 15;
-  socket.on('joinRoom', ({ pin, nickname }, callback) => {
+  socket.on('joinRoom', ({ pin, nickname, playerId }, callback) => {
+    if (!playerId) playerId = socket.id;
     if (rooms[pin]) {
-      if (rooms[pin].players.length >= MAX_PLAYERS) {
-        console.log(`🚫 Room ${pin} is full (${MAX_PLAYERS}/${MAX_PLAYERS}). ${nickname} rejected.`);
-        if(typeof callback === 'function') callback({ success: false, message: `방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명)` });
-        return;
+      const existingPlayer = rooms[pin].players.find(p => p.id === playerId);
+      let player;
+      if (existingPlayer) {
+        existingPlayer.socketId = socket.id;
+        existingPlayer.nickname = nickname;
+        existingPlayer.connected = true;
+        if (existingPlayer.disconnectTimeout) {
+          clearTimeout(existingPlayer.disconnectTimeout);
+          delete existingPlayer.disconnectTimeout;
+        }
+        player = existingPlayer;
+        socket.join(pin);
+        io.to(pin).emit('playersUpdated', rooms[pin].players);
+        console.log(`👤 User ${nickname} (ID:${playerId}) reconnected to room ${pin}`);
+      } else {
+        if (rooms[pin].players.length >= MAX_PLAYERS) {
+          console.log(`🚫 Room ${pin} is full (${MAX_PLAYERS}/${MAX_PLAYERS}). ${nickname} rejected.`);
+          if(typeof callback === 'function') callback({ success: false, message: `방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명)` });
+          return;
+        }
+        player = { id: playerId, socketId: socket.id, nickname, score: 0, connected: true };
+        rooms[pin].players.push(player);
+        socket.join(pin);
+        io.to(pin).emit('playersUpdated', rooms[pin].players);
+        console.log(`👤 User ${nickname}(${socket.id}) joined room ${pin} (${rooms[pin].players.length}/${MAX_PLAYERS})`);
       }
-      const player = { id: socket.id, nickname, score: 0 };
-      rooms[pin].players.push(player);
-      socket.join(pin);
-      
-      // 방 전체에 새로운 플레이어 접속 알림
-      io.to(pin).emit('playersUpdated', rooms[pin].players);
-      
-      console.log(`👤 User ${nickname}(${socket.id}) joined room ${pin} (${rooms[pin].players.length}/${MAX_PLAYERS})`);
       if(typeof callback === 'function') callback({ success: true, room: rooms[pin], player });
     } else {
       if(typeof callback === 'function') callback({ success: false, message: 'Invalid PIN' });
@@ -280,9 +296,11 @@ io.on('connection', (socket) => {
       // 기존 게임 타이머 전부 정리
       if (room.sentenceRaceTimer) { clearInterval(room.sentenceRaceTimer); room.sentenceRaceTimer = null; }
       if (room.raceTimer) { clearInterval(room.raceTimer); room.raceTimer = null; }
-      if (room.wordChainTimer) { clearInterval(room.wordChainTimer); room.wordChainTimer = null; }
+      if (room.chainTimer) { clearInterval(room.chainTimer); room.chainTimer = null; }
       if (room.bombTimer) { clearInterval(room.bombTimer); room.bombTimer = null; }
       if (room.hunterTimer) { clearInterval(room.hunterTimer); room.hunterTimer = null; }
+      if (room.hunterGame && room.hunterGame.enemies) { room.hunterGame.enemies = []; }
+
       room.sentenceRace = null;
       room.raceGame = null;
       room.wordChain = null;
@@ -542,7 +560,7 @@ io.on('connection', (socket) => {
   socket.on('claimBingo', ({ pin }) => {
     const room = rooms[pin];
     if (room) {
-      const player = room.players.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.socketId === socket.id);
       if (player) {
         player.score += 50; // 빙고 완성 보너스
         io.to(pin).emit('playersUpdated', room.players);
@@ -620,7 +638,7 @@ io.on('connection', (socket) => {
 
       // 호스트 승인 대기를 위해 타이머 일시정지
       clearInterval(room.bombTimer);
-      const player = room.players.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.socketId === socket.id);
       
       io.to(room.host).emit('hostReviewWord', {
         playerId: socket.id,
@@ -706,7 +724,7 @@ io.on('connection', (socket) => {
   socket.on('hunterScore', ({ pin, points }) => {
     const room = rooms[pin];
     if (room && room.gameState === 'spellingHunter' && room.hunterGame && room.hunterGame.isActive) {
-      const player = room.players.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.socketId === socket.id);
       if (player) {
         player.score += points;
         io.to(socket.id).emit('myScoreUpdated', { score: player.score });
@@ -749,7 +767,7 @@ io.on('connection', (socket) => {
     if (room && room.gameState === 'wordQuiz' && room.currentQuestion) {
       if (answer.trim().toLowerCase() === room.currentQuestion.answer.trim().toLowerCase()) {
         // 정답을 맞힌 플레이어 점수 증가
-        const player = room.players.find(p => p.id === socket.id);
+        const player = room.players.find(p => p.socketId === socket.id);
         if (player) {
           player.score += 10;
           io.to(pin).emit('playersUpdated', room.players); // 점수 업데이트
@@ -786,7 +804,7 @@ io.on('connection', (socket) => {
       if (!currentQ) return; 
 
       if (submittedSentence === currentQ.sentence) {
-        const player = room.players.find(p => p.id === socket.id);
+        const player = room.players.find(p => p.socketId === socket.id);
         if (player) {
           player.score += 10;
           room.sentenceRace.playerProgress[pId] = progressIndex + 1;
@@ -864,7 +882,7 @@ io.on('connection', (socket) => {
 
       // 호스트 승인 대기를 위해 타이머 일시정지
       clearInterval(room.chainTimer);
-      const player = room.players.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.socketId === socket.id);
       
       io.to(room.host).emit('hostReviewWord', {
         playerId: socket.id,
@@ -1054,7 +1072,7 @@ io.on('connection', (socket) => {
   socket.on('submitRaceAnswer', ({ pin, answer }) => {
     const room = rooms[pin];
     if (room && (room.gameState === 'speedRaceIndividual' || room.gameState === 'speedRaceTeam') && room.raceGame && room.raceGame.isActive) {
-      const player = room.players.find(p => p.id === socket.id);
+      const player = room.players.find(p => p.socketId === socket.id);
       if (player) {
         if (answer === player.currentRaceAnswer) {
           player.score += 1;
@@ -1082,18 +1100,49 @@ io.on('connection', (socket) => {
   });
 
   // 연결 종료 처리
+    socket.on('kickPlayer', ({ pin, nickname }) => {
+    if (rooms[pin]) {
+      const pIdx = rooms[pin].players.findIndex(p => p.nickname === nickname);
+      if (pIdx !== -1) {
+        const kickedSocketId = rooms[pin].players[pIdx].socketId;
+        rooms[pin].players.splice(pIdx, 1);
+        io.to(pin).emit('playersUpdated', rooms[pin].players);
+        if (kickedSocketId) {
+          io.to(kickedSocketId).emit('kicked');
+        }
+        console.log(`👢 Host kicked ${nickname} from room ${pin}`);
+      }
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log(`❌ User disconnected: ${socket.id}`);
     for (const [pin, room] of Object.entries(rooms)) {
       if (room.host === socket.id) {
-        // 호스트가 나가면 방 폭파
+        console.log(`🛑 Host left room ${pin}. Destroying room.`);
         io.to(pin).emit('hostDisconnected');
+        // Clear all timers
+        if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
+        if (room.raceTimer) clearInterval(room.raceTimer);
+        if (room.chainTimer) clearInterval(room.chainTimer);
+        if (room.bombTimer) clearInterval(room.bombTimer);
+        if (room.hunterTimer) clearInterval(room.hunterTimer);
         delete rooms[pin];
       } else {
-        const index = room.players.findIndex(p => p.id === socket.id);
-        if (index !== -1) {
-          room.players.splice(index, 1);
+        const player = room.players.find(p => p.socketId === socket.id);
+        if (player) {
+          player.connected = false;
+          console.log(`👋 User ${player.nickname} disconnected from room ${pin}`);
           io.to(pin).emit('playersUpdated', room.players);
+          
+          player.disconnectTimeout = setTimeout(() => {
+             const index = room.players.findIndex(p => p.id === player.id);
+             if (index !== -1 && !room.players[index].connected) {
+                room.players.splice(index, 1);
+                console.log(`👻 User ${player.nickname} permanently removed from ${pin}`);
+                io.to(pin).emit('playersUpdated', room.players);
+             }
+          }, 30000); // Remove after 30 seconds if not reconnected
         }
       }
     }
