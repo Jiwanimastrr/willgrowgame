@@ -64,6 +64,9 @@ function App() {
         <Route path="/host" element={<HostScreen />} />
         <Route path="/player" element={<PlayerScreen />} />
       </Routes>
+      <div style={{ position: 'fixed', bottom: '10px', right: '15px', color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', zIndex: 9999, pointerEvents: 'none', fontFamily: 'monospace' }}>
+        v1.0
+      </div>
     </Router>
   );
 }
