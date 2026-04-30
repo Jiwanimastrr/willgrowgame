@@ -395,7 +395,7 @@ io.on('connection', (socket) => {
     
     // Player들에게는 뜻(meaning)과 함께 주관식 출제 알림 전송
     room.players.forEach(p => {
-      io.to(p.id).emit('playerNewQuestion', { type: 'typing', meaning: question.meaning });
+      io.to(p.socketId).emit('playerNewQuestion', { type: 'typing', meaning: question.meaning });
     });
   }
 
@@ -424,7 +424,7 @@ io.on('connection', (socket) => {
       const tokens = firstQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
       const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
       
-      io.to(p.id).emit('playerNewPuzzle', { tokens: shuffledTokens, index: 0, total: 20 });
+      io.to(p.socketId).emit('playerNewPuzzle', { tokens: shuffledTokens, index: 0, total: 20 });
     });
 
     if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
@@ -796,53 +796,52 @@ io.on('connection', (socket) => {
   socket.on('submitSentence', ({ pin, submittedSentence }) => {
     const room = rooms[pin];
     if (room && room.gameState === 'sentencePuzzle' && room.sentenceRace?.isActive) {
-      const pId = socket.id;
-      const progressIndex = room.sentenceRace.playerProgress[pId];
+      const player = room.players.find(p => p.socketId === socket.id);
+      if (!player) return;
+      const playerId = player.id;
+      const progressIndex = room.sentenceRace.playerProgress[playerId];
       if (progressIndex === undefined) return;
 
       const currentQ = room.sentenceRace.sentences[progressIndex];
       if (!currentQ) return; 
 
       if (submittedSentence === currentQ.sentence) {
-        const player = room.players.find(p => p.socketId === socket.id);
-        if (player) {
-          player.score += 10;
-          room.sentenceRace.playerProgress[pId] = progressIndex + 1;
+        player.score += 10;
+        room.sentenceRace.playerProgress[playerId] = progressIndex + 1;
+        
+        const nextIndex = progressIndex + 1;
+        if (nextIndex >= 20) {
+          player.score += 50; 
+          io.to(socket.id).emit('sentenceRaceFinished');
+          room.sentenceRace.finishers.push(player);
           
-          const nextIndex = progressIndex + 1;
-          if (nextIndex >= 20) {
-            player.score += 50; 
-            io.to(pId).emit('sentenceRaceFinished');
-            room.sentenceRace.finishers.push(player);
-            
-            const sortedPlayers = [...room.players].sort((a,b) => b.score - a.score);
-            io.to(pin).emit('playersUpdated', room.players);
+          const sortedPlayers = [...room.players].sort((a,b) => b.score - a.score);
+          io.to(pin).emit('playersUpdated', room.players);
 
-            if (room.sentenceRace.finishers.length >= Math.min(3, room.players.length)) {
-               room.sentenceRace.isActive = false;
-               if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
-               
-               io.to(pin).emit('puzzleCorrectAnswer', { 
-                 winnerId: sortedPlayers[0].id, 
-                 winnerNickname: sortedPlayers[0].nickname,
-                 finalLeaderboard: sortedPlayers
-               });
-            } else {
-               io.to(pin).emit('sentenceRaceState', {
-                 timeRemaining: room.sentenceRace.timeRemaining,
-                 leaderboard: sortedPlayers.slice(0, 5)
-               });
-            }
+          if (room.sentenceRace.finishers.length >= Math.min(3, room.players.length)) {
+             room.sentenceRace.isActive = false;
+             if (room.sentenceRaceTimer) clearInterval(room.sentenceRaceTimer);
+             
+             io.to(pin).emit('puzzleCorrectAnswer', { 
+               winnerId: sortedPlayers[0].id, 
+               winnerNickname: sortedPlayers[0].nickname,
+               finalLeaderboard: sortedPlayers
+             });
           } else {
-            const nextQ = room.sentenceRace.sentences[nextIndex];
-            const tokens = nextQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
-            const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
-            io.to(pId).emit('sentenceRaceCorrect');
-            io.to(pin).emit('playersUpdated', room.players); // 리더보드용 실시간 점수갱신
-            setTimeout(() => {
-              io.to(pId).emit('playerNewPuzzle', { tokens: shuffledTokens, index: nextIndex, total: 20 });
-            }, 500);
+             io.to(pin).emit('sentenceRaceState', {
+               timeRemaining: room.sentenceRace.timeRemaining,
+               leaderboard: sortedPlayers.slice(0, 5)
+             });
           }
+        } else {
+          const nextQ = room.sentenceRace.sentences[nextIndex];
+          const tokens = nextQ.sentence.split(' ').map((word, idx) => ({ id: `${idx}-${word}`, text: word }));
+          const shuffledTokens = [...tokens].sort(() => 0.5 - Math.random());
+          io.to(socket.id).emit('sentenceRaceCorrect');
+          io.to(pin).emit('playersUpdated', room.players); // 리더보드용 실시간 점수갱신
+          setTimeout(() => {
+            io.to(socket.id).emit('playerNewPuzzle', { tokens: shuffledTokens, index: nextIndex, total: 20 });
+          }, 500);
         }
       } else {
         io.to(socket.id).emit('sentenceRaceWrong');
