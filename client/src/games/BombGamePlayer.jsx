@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { socket } from '../utils/socket';
+import { socket, getPlayerId } from '../utils/socket';
 
 function BombGamePlayer({ pin }) {
   const [bombState, setBombState] = useState(null);
@@ -22,7 +22,7 @@ function BombGamePlayer({ pin }) {
 
     socket.on('bombExploded', ({ id }) => {
       // 폭발 이벤트 시 화면 처리
-      if (id === socket.id) {
+      if (id === getPlayerId()) {
         if (window.soundFX) window.soundFX.playExplosion();
         setBombExploded(true);
       }
@@ -63,8 +63,8 @@ function BombGamePlayer({ pin }) {
     return <div style={{ padding: '2rem', textAlign: 'center', fontSize: '1.5rem' }}>준비 중...</div>;
   }
 
-  const isMyTurn = socket.id === bombState.currentPlayerId;
-  const isSpectator = !bombState.activePlayers.includes(socket.id);
+  const isMyTurn = getPlayerId() === bombState.currentPlayerId;
+  const isSpectator = !bombState.activePlayers.includes(getPlayerId());
 
   if (bombExploded || isSpectator) {
     return (

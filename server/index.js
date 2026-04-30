@@ -734,13 +734,15 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 플레이어의 목숨(HP)이 0이 되어 사망했을 때
   socket.on('hunterPlayerDied', ({ pin }) => {
     const room = rooms[pin];
     if (room && room.gameState === 'spellingHunter' && room.hunterGame && room.hunterGame.isActive) {
-       room.hunterGame.alivePlayers = room.hunterGame.alivePlayers.filter(id => id !== socket.id);
+       const player = room.players.find(p => p.socketId === socket.id);
+       if (!player) return;
        
-       io.to(pin).emit('hunterPlayerDied', { id: socket.id, aliveCount: room.hunterGame.alivePlayers.length });
+       room.hunterGame.alivePlayers = room.hunterGame.alivePlayers.filter(id => id !== player.id);
+       
+       io.to(pin).emit('hunterPlayerDied', { id: player.id, aliveCount: room.hunterGame.alivePlayers.length });
        
        // 최후의 1인이거나 모두 전멸했을 경우 게임 오버
        if (room.hunterGame.alivePlayers.length <= 1) {
@@ -773,10 +775,10 @@ io.on('connection', (socket) => {
           io.to(pin).emit('playersUpdated', room.players); // 점수 업데이트
           
           if (room.wordQuizWinningScore && player.score >= room.wordQuizWinningScore) {
-            io.to(pin).emit('correctAnswer', { winnerId: socket.id, winnerNickname: player.nickname, ended: true, winner: player.nickname });
+            io.to(pin).emit('correctAnswer', { winnerId: player.id, winnerNickname: player.nickname, ended: true, winner: player.nickname });
             room.currentQuestion = null;
           } else {
-            io.to(pin).emit('correctAnswer', { winnerId: socket.id, winnerNickname: player.nickname, ended: false });
+            io.to(pin).emit('correctAnswer', { winnerId: player.id, winnerNickname: player.nickname, ended: false });
             // 문제 초기화
             room.currentQuestion = null;
 

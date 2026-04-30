@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { socket } from '../utils/socket';
+import { socket, getPlayerId } from '../utils/socket';
 import { AlertCircle } from 'lucide-react';
 
 function WordChainPlayer({ pin }) {
@@ -21,7 +21,7 @@ function WordChainPlayer({ pin }) {
     });
 
     socket.on('playerEliminated', ({ id }) => {
-      if (id === socket.id) {
+      if (id === getPlayerId()) {
         if (window.soundFX) window.soundFX.playExplosion();
         setEliminated(true);
       }
@@ -77,7 +77,7 @@ function WordChainPlayer({ pin }) {
     );
   }
 
-  const isMyTurn = chainData.currentPlayerId === socket.id;
+  const isMyTurn = chainData.currentPlayerId === getPlayerId();
   const lastWord = chainData.chain[chainData.chain.length - 1];
   const requiredLetter = lastWord.charAt(lastWord.length - 1).toUpperCase();
 

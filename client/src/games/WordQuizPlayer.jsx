@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { socket } from '../utils/socket';
+import { socket, getPlayerId } from '../utils/socket';
 
 function WordQuizPlayer({ pin }) {
   const [question, setQuestion] = useState(null);
@@ -18,7 +18,7 @@ function WordQuizPlayer({ pin }) {
     });
 
     socket.on('correctAnswer', ({ winnerId, winnerNickname }) => {
-      if (winnerId === socket.id) {
+      if (winnerId === getPlayerId()) {
         if (window.soundFX) window.soundFX.playCorrect();
         setResult('correct');
       } else {
