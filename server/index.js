@@ -353,7 +353,7 @@ io.on('connection', (socket) => {
       else if (gameMode === 'speedRaceTeam') {
         console.log(`🏁 Starting Speed Race Team in room ${pin} with ${room.players.length} players`);
         setTimeout(() => {
-          if (rooms[pin]) startSpeedRace(pin, rooms[pin], 'team');
+          if (rooms[pin]) startSpeedRace(pin, rooms[pin], 'team', options);
         }, 1500);
       }
       // 9번 게임: 불규칙동사 스피드게임 (타이핑)
@@ -935,7 +935,7 @@ io.on('connection', (socket) => {
 
   // ==== 7, 8. 스피드 레이스 (개인전 / 팀전) ====
 
-  function startSpeedRace(pin, room, type) {
+  function startSpeedRace(pin, room, type, options = null) {
     if (!room || !room.players || room.players.length === 0) {
       console.log(`❌ Cannot start Speed Race: room or players missing`);
       return;
@@ -951,16 +951,32 @@ io.on('connection', (socket) => {
 
     if (type === 'team') {
       const teamNames = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
-      const numTeams = Math.max(2, Math.min(4, Math.ceil(room.players.length / 2)));
-      const activeTeams = teamNames.slice(0, numTeams);
-      activeTeams.forEach(t => room.raceGame.teams[t] = 0);
+      let activeTeams = [];
+      
+      if (options && options.teamAssignments) {
+        // Use host provided assignments
+        const uniqueTeams = [...new Set(Object.values(options.teamAssignments))];
+        activeTeams = uniqueTeams;
+        activeTeams.forEach(t => room.raceGame.teams[t] = 0);
+        
+        room.players.forEach(p => {
+          p.score = 0;
+          p.team = options.teamAssignments[p.id] || 'RED';
+          p.currentRaceAnswer = null;
+        });
+      } else {
+        // Fallback random
+        const numTeams = Math.max(2, Math.min(4, Math.ceil(room.players.length / 2)));
+        activeTeams = teamNames.slice(0, numTeams);
+        activeTeams.forEach(t => room.raceGame.teams[t] = 0);
 
-      const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
-      shuffledPlayers.forEach((p, idx) => {
-        p.score = 0;
-        p.team = activeTeams[idx % numTeams];
-        p.currentRaceAnswer = null;
-      });
+        const shuffledPlayers = [...room.players].sort(() => 0.5 - Math.random());
+        shuffledPlayers.forEach((p, idx) => {
+          p.score = 0;
+          p.team = activeTeams[idx % numTeams];
+          p.currentRaceAnswer = null;
+        });
+      }
     } else {
       room.players.forEach(p => {
         p.score = 0;

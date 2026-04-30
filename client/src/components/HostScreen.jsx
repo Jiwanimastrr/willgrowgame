@@ -38,6 +38,7 @@ function HostScreen() {
   const [wordQuizWinningScore, setWordQuizWinningScore] = useState(100);
   const [showSpeedRaceSoloOptions, setShowSpeedRaceSoloOptions] = useState(false);
   const [showSpeedRaceTeamOptions, setShowSpeedRaceTeamOptions] = useState(false);
+  const [teamAssignments, setTeamAssignments] = useState({});
   const [showQRModal, setShowQRModal] = useState(false);
 
   const [heroOpacity, setHeroOpacity] = useState(1);
@@ -340,7 +341,16 @@ function HostScreen() {
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => startGame('categoryBomb')}>CATEGORY BOMB</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpellingHunterOptions(true)}>SPELLING HUNTER</button>
                 <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpeedRaceSoloOptions(true)}>SPEED RACE <span style={{fontSize:'1.2rem'}}>(SOLO)</span></button>
-                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => setShowSpeedRaceTeamOptions(true)}>SPEED RACE <span style={{fontSize:'1.2rem'}}>(TEAM)</span></button>
+                <button className="ow-menu-item" style={{ fontSize: 'clamp(1.6rem, 3vw, 2.4rem)', margin: '0' }} onClick={() => {
+                  const initialAssignments = {};
+                  const teamNames = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+                  const numTeams = Math.max(2, Math.min(4, Math.ceil(players.length / 2)));
+                  players.forEach((p, idx) => {
+                    initialAssignments[p.id] = teamNames[idx % numTeams];
+                  });
+                  setTeamAssignments(initialAssignments);
+                  setShowSpeedRaceTeamOptions(true);
+                }}>SPEED RACE <span style={{fontSize:'1.2rem'}}>(TEAM)</span></button>
              </div>
              
              <button 
@@ -802,40 +812,80 @@ function HostScreen() {
                        
                        <div style={{ position: 'relative', width: '100%', paddingRight: '30px' }}>
                          {/* Finish Line */}
-                         <div style={{ position: 'absolute', right: '-5px', top: 0, bottom: 0, width: '2px', background: 'rgba(255,255,255,0.5)', zIndex: 0 }}></div>
+                         {raceData.type === 'individual' && <div style={{ position: 'absolute', right: '-5px', top: 0, bottom: 0, width: '2px', background: 'rgba(255,255,255,0.5)', zIndex: 0 }}></div>}
                          
                          {raceData.type === 'team' ? (
-                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', width: '100%' }}>
-                             {(() => {
-                                const maxTeamScore = Math.max(0, ...Object.values(raceData.teams));
-                                const dynamicDenom = maxTeamScore + 15;
-                                return Object.entries(raceData.teams)
-                                  .sort((a,b) => b[1] - a[1])
-                                  .map(([team, score]) => {
-                                    const percent = Math.min(100, (score / dynamicDenom) * 100);
-                                    const colorMap = { 'RED': '#ef4444', 'BLUE': '#3b82f6', 'GREEN': '#22c55e', 'YELLOW': '#eab308' };
-                                    const barColor = colorMap[team] || '#a855f7';
-                                    return (
-                                      <div key={team} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
-                                        <span className="headline-lg" style={{ width: '160px', color: '#fff', fontSize: '1.4rem' }}>
-                                          {team}
-                                        </span>
-                                        <div style={{ flex: 1, position: 'relative', height: '16px', background: `${barColor}33`, borderRadius: '8px' }}>
-                                          <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '8px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
-                                             <div style={{ 
-                                                position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)',
-                                                width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000',
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
-                                                boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
-                                             }}>
-                                                {score}
-                                             </div>
+                           <div style={{ display: 'flex', width: '100%', gap: '2rem' }}>
+                             {/* Left Team Roster (RED, GREEN) */}
+                             <div style={{ width: '200px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                               {['RED', 'GREEN'].map(t => {
+                                 if (!raceData.teams[t] && raceData.teams[t] !== 0) return null;
+                                 const tMembers = raceData.playersInfo.filter(p => p.team === t);
+                                 if (tMembers.length === 0) return null;
+                                 const colorMap = { 'RED': '#ef4444', 'GREEN': '#22c55e' };
+                                 return (
+                                   <div key={t} style={{ border: `2px solid ${colorMap[t]}`, borderRadius: '12px', padding: '1rem', background: 'rgba(0,0,0,0.3)' }}>
+                                      <h4 className="headline-lg" style={{ color: colorMap[t], margin: '0 0 1rem 0', textAlign: 'center' }}>{t} TEAM</h4>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {tMembers.map(m => <span key={m.id} style={{ color: '#fff', fontSize: '1.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{m.nickname}</span>)}
+                                      </div>
+                                   </div>
+                                 );
+                               })}
+                             </div>
+                             
+                             {/* Center Chart */}
+                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2.5rem', position: 'relative', paddingTop: '2rem' }}>
+                               {/* Finish Line overrides parent finish line for center alignment */}
+                               {(() => {
+                                  const maxTeamScore = Math.max(0, ...Object.values(raceData.teams));
+                                  const dynamicDenom = maxTeamScore + 15;
+                                  return Object.entries(raceData.teams)
+                                    .sort((a,b) => b[1] - a[1])
+                                    .map(([team, score]) => {
+                                      const percent = Math.min(100, (score / dynamicDenom) * 100);
+                                      const colorMap = { 'RED': '#ef4444', 'BLUE': '#3b82f6', 'GREEN': '#22c55e', 'YELLOW': '#eab308' };
+                                      const barColor = colorMap[team] || '#a855f7';
+                                      return (
+                                        <div key={team} style={{ display: 'flex', alignItems: 'center', width: '100%', position: 'relative', zIndex: 1 }}>
+                                          <span className="headline-lg" style={{ width: '100px', color: '#fff', fontSize: '1.4rem' }}>
+                                            {team}
+                                          </span>
+                                          <div style={{ flex: 1, position: 'relative', height: '16px', background: `${barColor}33`, borderRadius: '8px' }}>
+                                            <div style={{ width: `${percent}%`, height: '100%', background: barColor, borderRadius: '8px', transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)', position: 'relative' }}>
+                                               <div style={{ 
+                                                  position: 'absolute', right: '-16px', top: '50%', transform: 'translateY(-50%)',
+                                                  width: '32px', height: '32px', borderRadius: '50%', background: '#fff', color: '#000',
+                                                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.2rem',
+                                                  boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                                               }}>
+                                                  {score}
+                                               </div>
+                                            </div>
                                           </div>
                                         </div>
+                                      );
+                                  });
+                               })()}
+                             </div>
+
+                             {/* Right Team Roster (BLUE, YELLOW) */}
+                             <div style={{ width: '200px', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                               {['BLUE', 'YELLOW'].map(t => {
+                                 if (!raceData.teams[t] && raceData.teams[t] !== 0) return null;
+                                 const tMembers = raceData.playersInfo.filter(p => p.team === t);
+                                 if (tMembers.length === 0) return null;
+                                 const colorMap = { 'BLUE': '#3b82f6', 'YELLOW': '#eab308' };
+                                 return (
+                                   <div key={t} style={{ border: `2px solid ${colorMap[t]}`, borderRadius: '12px', padding: '1rem', background: 'rgba(0,0,0,0.3)' }}>
+                                      <h4 className="headline-lg" style={{ color: colorMap[t], margin: '0 0 1rem 0', textAlign: 'center' }}>{t} TEAM</h4>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        {tMembers.map(m => <span key={m.id} style={{ color: '#fff', fontSize: '1.2rem', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{m.nickname}</span>)}
                                       </div>
-                                    );
-                                });
-                             })()}
+                                   </div>
+                                 );
+                               })}
+                             </div>
                            </div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
@@ -946,18 +996,76 @@ function HostScreen() {
       )}
 
       {showSpeedRaceTeamOptions && (
-        <div className="genie-modal-container" onClick={() => setShowSpeedRaceTeamOptions(false)}>
-          <div className="genie-modal-content" onClick={(e) => e.stopPropagation()}>
-             <h2 className="genie-modal-head">🏆 SPEED RACE (TEAM)</h2>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', 'All Random')}>🎲 All Random</button>
-             {customVocabCount > 0 && <button className="genie-btn" style={{ color: '#48cfae', borderColor: '#48cfae' }} onClick={() => startGame('speedRaceTeam', 'Custom')}>⭐ Custom Vocab</button>}
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '동물 & 자연')}>🦁 Animals & Nature</button>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '음식 & 과일')}>🍔 Food & Fruits</button>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '사물 & 장소')}>🏫 Objects & Places</button>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '직업 & 인간')}>👨‍⚕️ Jobs & People</button>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '숫자')}>🔢 Numbers</button>
-             <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '불규칙동사 (과거/과거분사)')}>🔄 Irregular Verbs</button>
-             <button className="genie-btn genie-btn-close" onClick={() => setShowSpeedRaceTeamOptions(false)}>CLOSE</button>
+        <div className="genie-modal-container" onClick={() => setShowSpeedRaceTeamOptions(false)} style={{ zIndex: 1000 }}>
+          <div className="genie-modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '800px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', maxHeight: '90vh', overflowY: 'auto' }}>
+             <h2 className="genie-modal-head" style={{ marginBottom: '0.5rem' }}>🏆 SPEED RACE (TEAM CONFIG)</h2>
+             
+             {/* Team Configuration UI */}
+             <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 className="headline-lg" style={{ margin: 0, color: 'var(--ow-secondary)' }}>팀 배정 (클릭하여 변경)</h3>
+                  <button className="ow-btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '1rem' }} onClick={() => {
+                    const newAssignments = {};
+                    const teamNames = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+                    const numTeams = Math.max(2, Math.min(4, Math.ceil(players.length / 2)));
+                    const shuffled = [...players].sort(() => 0.5 - Math.random());
+                    shuffled.forEach((p, idx) => {
+                      newAssignments[p.id] = teamNames[idx % numTeams];
+                    });
+                    setTeamAssignments(newAssignments);
+                  }}>🎲 랜덤 배치</button>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.8rem' }}>
+                  {players.map(p => {
+                    const teamColors = {
+                      'RED': '#ef4444',
+                      'BLUE': '#3b82f6',
+                      'GREEN': '#22c55e',
+                      'YELLOW': '#eab308'
+                    };
+                    const currentTeam = teamAssignments[p.id] || 'RED';
+                    return (
+                      <div 
+                        key={p.id} 
+                        onClick={() => {
+                          const teams = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+                          const nextIdx = (teams.indexOf(currentTeam) + 1) % teams.length;
+                          setTeamAssignments(prev => ({...prev, [p.id]: teams[nextIdx]}));
+                        }}
+                        style={{
+                          background: teamColors[currentTeam],
+                          padding: '0.6rem 1.2rem',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{currentTeam}</span>
+                        <span style={{ fontSize: '1.2rem' }}>{p.nickname}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+             </div>
+
+             <h3 className="headline-lg" style={{ marginTop: '1rem', color: '#fff', textAlign: 'center' }}>주제 선택 후 게임 시작</h3>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', 'All Random', null, { teamAssignments })}>🎲 All Random</button>
+               {customVocabCount > 0 && <button className="genie-btn" style={{ color: '#48cfae', borderColor: '#48cfae' }} onClick={() => startGame('speedRaceTeam', 'Custom', null, { teamAssignments })}>⭐ Custom Vocab</button>}
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '동물 & 자연', null, { teamAssignments })}>🦁 Animals & Nature</button>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '음식 & 과일', null, { teamAssignments })}>🍔 Food & Fruits</button>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '사물 & 장소', null, { teamAssignments })}>🏫 Objects & Places</button>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '직업 & 인간', null, { teamAssignments })}>👨‍⚕️ Jobs & People</button>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '숫자', null, { teamAssignments })}>🔢 Numbers</button>
+               <button className="genie-btn" onClick={() => startGame('speedRaceTeam', '불규칙동사 (과거/과거분사)', null, { teamAssignments })}>🔄 Irregular Verbs</button>
+             </div>
+             <button className="genie-btn genie-btn-close" style={{ marginTop: '1rem' }} onClick={() => setShowSpeedRaceTeamOptions(false)}>CLOSE</button>
           </div>
         </div>
       )}

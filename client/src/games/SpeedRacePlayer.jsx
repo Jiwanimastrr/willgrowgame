@@ -75,7 +75,7 @@ function SpeedRacePlayer({ pin, nickname }) {
            <div className="body-md" style={{ color: 'var(--on-surface)', fontWeight: 'bold' }}>{nickname}</div>
            <div className="headline-lg" style={{ color: 'var(--ow-primary)' }}>SCORE: {playerInfo?.score || 0}</div>
            {raceData?.type === 'team' && playerInfo?.team && (
-             <div className="headline-lg" style={{ color: playerInfo.team === 'RED' ? 'var(--ow-error)' : playerInfo.team === 'BLUE' ? 'var(--ow-secondary)' : playerInfo.team === 'GREEN' ? 'var(--ow-primary-dim)' : 'var(--ow-primary)' }}>
+             <div className="headline-lg" style={{ color: playerInfo.team === 'RED' ? '#ef4444' : playerInfo.team === 'BLUE' ? '#3b82f6' : playerInfo.team === 'GREEN' ? '#22c55e' : '#eab308' }}>
                {playerInfo.team} TEAM: {raceData.teams[playerInfo.team] || 0}
              </div>
            )}
