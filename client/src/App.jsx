@@ -67,7 +67,7 @@ function App() {
         </Routes>
       </Router>
       <div style={{ position: 'fixed', bottom: '15px', right: '20px', color: 'rgba(255,255,255,0.9)', fontSize: '1.2rem', zIndex: 2147483647, pointerEvents: 'none', fontFamily: 'monospace', fontWeight: 'bold', textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>
-        v1.0
+        v1.1
       </div>
     </>
   );
