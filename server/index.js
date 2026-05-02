@@ -389,6 +389,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // 플레이어의 현재 문제 재요청 (지연 접속 또는 재접속 시)
+  socket.on('requestCurrentWordQuiz', ({ pin }) => {
+    const room = rooms[pin];
+    if (room && room.gameState === 'wordQuiz' && room.currentQuestion) {
+      io.to(socket.id).emit('playerNewQuestion', { type: 'typing', meaning: room.currentQuestion.meaning });
+    }
+  });
+
   function emitNextWordQuiz(pin, room) {
     let sourceDB = wordQuizDB;
     

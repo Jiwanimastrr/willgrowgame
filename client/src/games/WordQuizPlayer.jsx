@@ -8,6 +8,9 @@ function WordQuizPlayer({ pin }) {
   const inputRef = useRef(null);
 
   useEffect(() => {
+    // 마운트 시 현재 문제를 서버에 요청 (게임 도중 진입 시 데이터 수신용)
+    socket.emit('requestCurrentWordQuiz', { pin });
+
     socket.on('playerNewQuestion', (data) => {
       setQuestion(data);
       setResult(null); // 문제 초기화 시 UI 리셋
